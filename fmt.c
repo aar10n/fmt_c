@@ -28,7 +28,6 @@ typedef struct parsed_fmt_spec {
   bool valid;
 } parsed_fmt_spec_t;
 
-// _Static_assert(sizeof(double) == sizeof(uint64_t), "double and uint64_t must be the same size");
 static inline int read_int(const char **ptr) {
   const char *start = *ptr;
   while (is_digit(**ptr)) {
@@ -364,10 +363,10 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       spec->value = values[parsed_spec->index];
       if (parsed_spec->width_is_index) {
-        spec->width = *(int *)values[parsed_spec->width_or_index];
+        spec->width = *(int *)&values[parsed_spec->width_or_index];
       }
       if (parsed_spec->precision_is_index) {
-        spec->precision = *(int *)values[parsed_spec->precision_or_index];
+        spec->precision = *(int *)&values[parsed_spec->precision_or_index];
       }
 
       // format
@@ -393,7 +392,7 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
   }
 
   // now make a second pass over the format string to print it. this time we dont
-  // have to
+  // have to reparse the specifiers
   ptr = pass_two_start;
   int index = pass_two_index;
   while (*ptr && !fmt_buffer_full(&buf) && index < spec_index) {
