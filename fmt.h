@@ -91,18 +91,21 @@
  *     formatting is applied.
  *     The following built-in types are supported:
  *
- *         'd'             - signed decimal integer
- *         'u'             - unsigned decimal integer
- *         'b'             - unsigned binary integer
- *         'o'             - unsigned octal integer
- *         'x'             - unsigned hexadecimal integer
+ *          ** 'll' specifies a 64-bit argument, default is 32-bit **
+ *         '[ll]d'         - signed decimal integer
+ *         '[ll]u'         - unsigned decimal integer
+ *         '[ll]b'         - unsigned binary integer
+ *         '[ll]o'         - unsigned octal integer
+ *         '[ll]x'         - unsigned hexadecimal integer
+ *
  *         'f'             - floating point number (double)
+ *         'F'             - floating point number capitalized
  *
  *         's'             - string
  *         'c'             - character
- *         'p'             - pointer
  *
  * Notes:
+ *
  *   - The maximum number of arguments supported by the fmt funcions is defined by the
  *     `FMT_MAX_ARGS` macro.
  *   - Implicit arguments are limited to `max_args` (default FMT_MAX_ARGS) and will ignore

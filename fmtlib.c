@@ -7,23 +7,14 @@
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
-#define RAW_VALUE(voidp) ((union raw_value){ .raw = (voidp) })
 
 #define TEMP_BUFFER_SIZE (FMTLIB_MAX_WIDTH + 1)
 
 typedef struct fmt_format_type {
   const char *type;
-  int size;
   fmt_formatter_t fn;
+  fmt_argtype_t argtype;
 } fmt_format_type_t;
-
-union raw_value {
-  void *raw;
-  int int_value;
-  uint64_t uint64_value;
-  int64_t int64_value;
-  double double_value;
-};
 
 union double_raw {
   double value;
@@ -82,7 +73,7 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
   uint64_t v;
   bool is_negative = false;
   if (is_signed) {
-    int64_t i = RAW_VALUE(spec->value).int64_value;
+    int64_t i = (int64_t) spec->value.uint64_value;
     if (i < 0) {
       v = -i;
       is_negative = true;
@@ -90,7 +81,7 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
       v = i;
     }
   } else {
-    v = RAW_VALUE(spec->value).uint64_value;
+    v = spec->value.uint64_value;
   }
 
   // write sign or space to buffer
@@ -144,7 +135,7 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
 
 // Writes a floating point number to the buffer.
 static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  union double_raw v = { .value = RAW_VALUE(spec->value).double_value };
+  union double_raw v = { .value = spec->value.double_value };
   int width = min(max(spec->width, 0), FMTLIB_MAX_WIDTH);
   size_t n = 0;
 
@@ -331,7 +322,7 @@ size_t fmtlib_format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
 }
 
 size_t fmtlib_format_string(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  const char *str = spec->value;
+  const char *str = spec->value.voidptr_value;
   size_t len = spec->precision;
   if (str == NULL) {
     str = "(null)";
@@ -383,53 +374,108 @@ int fmtlib_atoi(const char *data, size_t size) {
 
 //
 
-void fmtlib_register_type(const char *type, int size, fmt_formatter_t fn) {
+void fmtlib_register_type(const char *type, fmt_formatter_t fn, fmt_argtype_t argtype) {
   if (num_format_types >= FMTLIB_MAX_TYPES) {
     return;
   }
 
   format_types[num_format_types].type = type;
-  format_types[num_format_types].size = size;
   format_types[num_format_types].fn = fn;
+  format_types[num_format_types].argtype = argtype;
   num_format_types++;
 }
 
 int fmtlib_resolve_type(fmt_spec_t *spec) {
   const char *type = spec->type;
   if (spec->type_len == 0) {
-    return 0;
+    spec->argtype = FMT_ARGTYPE_NONE;
+    spec->formatter = NULL;
+    return 1;
   } else if (spec->type_len == 1) {
     switch (spec->type[0]) {
       case 'd':
-      case 'i': spec->formatter = fmtlib_format_signed; return sizeof(int32_t);
-      case 'u': spec->formatter = fmtlib_format_unsigned; return sizeof(uint32_t);
-      case 'b': spec->formatter = fmtlib_format_binary; return sizeof(uint32_t);
-      case 'o': spec->formatter = fmtlib_format_octal; return sizeof(uint32_t);
-      case 'x': spec->formatter = fmtlib_format_hex; return sizeof(uint32_t);
-      case 'X': spec->formatter = fmtlib_format_hex;
+        spec->argtype = FMT_ARGTYPE_INT32;
+        spec->formatter = fmtlib_format_signed;
+        return 1;
+      case 'u':
+        spec->argtype = FMT_ARGTYPE_UINT32;
+        spec->formatter = fmtlib_format_unsigned;
+        return 1;
+      case 'b':
+        spec->argtype = FMT_ARGTYPE_UINT32;
+        spec->formatter = fmtlib_format_binary;
+        return 1;
+      case 'o':
+        spec->argtype = FMT_ARGTYPE_UINT32;
+        spec->formatter = fmtlib_format_octal;
+        return 1;
+      case 'X':
         spec->flags |= FMT_FLAG_UPPER;
-        return sizeof(uint32_t);
-      case 'f': spec->formatter = fmtlib_format_double; return sizeof(double);
-      case 'F': spec->formatter = fmtlib_format_double;
+        // fallthrough
+      case 'x':
+        spec->argtype = FMT_ARGTYPE_UINT32;
+        spec->formatter = fmtlib_format_hex;
+        return 1;
+      case 'F':
         spec->flags |= FMT_FLAG_UPPER;
-        return sizeof(double);
-      case 's': spec->formatter = fmtlib_format_string; return sizeof(char *);
-      case 'c': spec->formatter = fmtlib_format_char; return sizeof(char);
+        // fallthrough
+      case 'f':
+        spec->argtype = FMT_ARGTYPE_DOUBLE;
+        spec->formatter = fmtlib_format_double;
+        return 1;
+      case 's':
+        spec->argtype = FMT_ARGTYPE_VOIDPTR;
+        spec->formatter = fmtlib_format_string;
+        return 1;
+      case 'c':
+        spec->argtype = FMT_ARGTYPE_INT32;
+        spec->formatter = fmtlib_format_char;
+        return 1;
       default:
         break;
+    }
+  } else if (spec->type_len == 3) {
+    if (strncmp(type, "lld", 3) == 0) {
+      spec->argtype = FMT_ARGTYPE_INT32;
+      spec->formatter = fmtlib_format_signed;
+      return 1;
+    } else if (strncmp(type, "llu", 3) == 0) {
+      spec->argtype = FMT_ARGTYPE_UINT64;
+      spec->formatter = fmtlib_format_unsigned;
+      return 1;
+    } else if (strncmp(type, "llb", 3) == 0) {
+      spec->argtype = FMT_ARGTYPE_UINT64;
+      spec->formatter = fmtlib_format_binary;
+      return 1;
+    } else if (strncmp(type, "llo", 3) == 0) {
+      spec->argtype = FMT_ARGTYPE_UINT64;
+      spec->formatter = fmtlib_format_octal;
+      return 1;
+    } else if (strncmp(type, "llX", 3) == 0) {
+      spec->flags |= FMT_FLAG_UPPER;
+      spec->argtype = FMT_ARGTYPE_UINT64;
+      spec->formatter = fmtlib_format_hex;
+      return 1;
+    } else if (strncmp(type, "llx", 3) == 0) {
+      spec->argtype = FMT_ARGTYPE_UINT64;
+      spec->formatter = fmtlib_format_hex;
+      return 1;
     }
   }
 
   // TODO: maybe use something faster here?
   for (size_t i = 0; i < num_format_types; i++) {
     if (strcmp(format_types[i].type, type) == 0) {
+      spec->argtype = format_types[i].argtype;
       spec->formatter = format_types[i].fn;
-      return format_types[i].size;
+      return format_types[i].argtype;
     }
   }
 
   // type not found
-  return -1;
+  spec->argtype = FMT_ARGTYPE_NONE;
+  spec->formatter = NULL;
+  return 0;
 }
 
 size_t fmtlib_format(fmt_buffer_t *buffer, fmt_spec_t *spec) {

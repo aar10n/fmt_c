@@ -67,16 +67,18 @@ type
     formatting is applied.
     The following built-in types are supported:
 
-        'd'             - signed decimal integer
-        'u'             - unsigned decimal integer
-        'b'             - unsigned binary integer
-        'o'             - unsigned octal integer
-        'x'             - unsigned hexadecimal integer
+         ** 'll' specifies a 64-bit argument, default is 32-bit **
+        '[ll]d'         - signed decimal number
+        '[ll]u'         - unsigned decimal number
+        '[ll]b'         - unsigned binary number
+        '[ll]o'         - unsigned octal number
+        '[ll]x'         - unsigned hexadecimal number
+
         'f'             - floating point number (double)
+        'F'             - floating point number capitalized
 
         's'             - string
         'c'             - character
-        'p'             - pointer
 
 Notes:
   - The maximum number of arguments supported by the fmt funcions is defined by the
@@ -97,23 +99,25 @@ Examples:
 
 Output of test/test.c:
 ```
-[PASS] "Hello, world!" in 255 ns
-[PASS] "Hello, world!" in 195 ns
-[PASS] "42" in 210 ns
-[PASS] "2a" in 210 ns
-[PASS] "3.14" in 223 ns
-[PASS] "3.14, 42" in 256 ns
-[PASS] "42, 3.14" in 255 ns
-[PASS] "3.14, string, 42" in 294 ns
-[PASS] "0x2a" in 170 ns
-[PASS] "2A" in 171 ns
-[PASS] "007" in 186 ns
-[PASS] "-007" in 192 ns
-[PASS] "+007" in 183 ns
-[PASS] " 42" in 160 ns
-[PASS] "-42" in 154 ns
-[PASS] "  42" in 153 ns
-[PASS] " 42 " in 178 ns
-[PASS] "42  " in 173 ns
-[PASS] "===== hello =====" in 180 ns
+[PASS] "Hello, world!" in 161 ns
+[PASS] "Hello, world!" in 131 ns
+[PASS] "42" in 139 ns
+[PASS] "2a" in 138 ns
+[PASS] "3.14" in 157 ns
+[PASS] "3.14, 42" in 197 ns
+[PASS] "42, 3.14" in 184 ns
+[PASS] "3.14, string, 42" in 214 ns
+[PASS] "0x2a" in 135 ns
+[PASS] "2A" in 138 ns
+[PASS] "007" in 146 ns
+[PASS] "-007" in 155 ns
+[PASS] "+007" in 157 ns
+[PASS] " 42" in 132 ns
+[PASS] "-42" in 132 ns
+[PASS] "  42" in 132 ns
+[PASS] " 42 " in 153 ns
+[PASS] "42  " in 160 ns
+[PASS] "===== hello =====" in 175 ns
+[PASS] "101............" in 194 ns
+[PASS] "............101" in 170 ns
 ```

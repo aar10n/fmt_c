@@ -15,8 +15,8 @@
 // ==========================
 // fmtlib provides a way to add support for new specifier types at runtime
 // by registering formatter functions. To add a new type, simply call the
-// `fmt_register_type` function with your unique type name, the size of that
-// type in bytes, and the formatter function.
+// `fmt_register_type` function with your unique type name, the type of the
+// argument for your specifier, and a function which will format the value.
 //
 // The formatter function should use the fmt_buffer_ functions when writing
 // to the buffer, and it should return the number of bytes actually written.
@@ -45,6 +45,25 @@ typedef enum fmt_align {
   FMT_ALIGN_RIGHT,
 } fmt_align_t;
 
+typedef enum fmt_argtype {
+  FMT_ARGTYPE_NONE,
+  FMT_ARGTYPE_INT32,
+  FMT_ARGTYPE_INT64,
+  FMT_ARGTYPE_UINT32,
+  FMT_ARGTYPE_UINT64,
+  FMT_ARGTYPE_DOUBLE,
+  FMT_ARGTYPE_VOIDPTR,
+} fmt_argtype_t;
+
+typedef union fmt_raw_value {
+  uint64_t uint64_value;
+  double double_value;
+  void *voidptr_value;
+} fmt_raw_value_t;
+#define fmt_rawvalue_uint64(v) ((union fmt_raw_value) { .uint64_value = (v) })
+#define fmt_rawvalue_double(v) ((union fmt_raw_value) { .double_value = (v) })
+#define fmt_rawvalue_voidptr(v) ((union fmt_raw_value) { .voidptr_value = (v) })
+
 typedef struct fmt_spec fmt_spec_t;
 typedef struct fmt_buffer fmt_buffer_t;
 
@@ -62,7 +81,8 @@ typedef struct fmt_spec {
   char fill_char;
   const char *end;
   //
-  void *value;
+  fmt_raw_value_t value;
+  fmt_argtype_t argtype;
   fmt_formatter_t formatter;
 } fmt_spec_t;
 
@@ -128,19 +148,19 @@ int fmtlib_atoi(const char *data, size_t size);
  * Registers a new format specifier type.
  *
  * @param type The type name
- * @param size The byte size of this type
  * @param fn The function which formats this type
+ * @param argtype The type of argument this formatter expects (as taken from the va_list)
  */
-void fmtlib_register_type(const char *type, int size, fmt_formatter_t fn);
+void fmtlib_register_type(const char *type, fmt_formatter_t fn, fmt_argtype_t argtype);
 
 /**
- * Resolves the specifier type to a formatter function and type size.
- * If the type exists, spec->formatter will be set and the function will
- * return the size of the type.
+ * Resolves the specifier type to a formatter function and argument type.
+ * If the format type exists, spec->formatter and spec->argtypee will be set
+ * and the function will return 1, otherwise 0 will be returned.
  *
  * @param type The type name
  * @param spec The format specifier
- * @return The size of the type in bytes or -1 if the type is unknown
+ * @return 1 on success, 0 on failure
  */
 int fmtlib_resolve_type(fmt_spec_t *spec);
 

@@ -235,17 +235,6 @@ early_exit:
 //
 
 size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, va_list args) {
-#define LOAD_ARG(index) ({ \
-    void *v;                \
-    switch (arg_sizes[index]) { \
-      case 0: v = NULL; break; \
-      case 4: v = (void *)((uint64_t)va_arg(args_copy, int)); break; \
-      case 8: v = (void *)va_arg(args_copy, uint64_t); break; \
-      default: v = NULL; break; \
-    }                         \
-    v;                         \
-  })
-
   va_list args_copy;
   va_copy(args_copy, args);
 
@@ -269,8 +258,8 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
   int arg_index = 0;
   int arg_count = 0;
   int loaded_arg_count = 0;
-  int arg_sizes[FMT_MAX_ARGS] = {0};
-  void *values[FMT_MAX_ARGS] = {0};
+  fmt_raw_value_t values[FMT_MAX_ARGS] = {0};
+  fmt_argtype_t argtypes[FMT_MAX_ARGS] = {0};
 
   // the following counter keeps track of specifiers when running in two-pass mode. in single-pass
   // mode specifiers are written directly to the buffer and so there is no limit on the number of
@@ -317,22 +306,32 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       memcpy(spec->type, parsed_spec->type, min(parsed_spec->type_len, FMTLIB_MAX_TYPE_LEN));
       spec->type[parsed_spec->type_len] = 0;
       spec->type_len = parsed_spec->type_len;
-      spec->value = NULL;
+      spec->value = fmt_rawvalue_uint64(0);
       spec->flags = parsed_spec->flags;
       spec->align = parsed_spec->align;
       spec->fill_char = parsed_spec->fill_char;
 
       // resolve specifier type
-      int arg_size = fmtlib_resolve_type(spec);
-      arg_sizes[parsed_spec->index] = arg_size;
+      if (!fmtlib_resolve_type(spec)) {
+        if (single_pass) {
+          // invalid type
+          n += fmt_buffer_write(&buf, "{bad type: ", 11);
+          n += fmt_buffer_write(&buf, spec->type, parsed_spec->type_len);
+          n += fmt_buffer_write_char(&buf, '}');
+        }
+
+        argtypes[parsed_spec->index] = FMT_ARGTYPE_NONE;
+        continue;
+      }
+      argtypes[parsed_spec->index] = spec->argtype;
 
       if (parsed_spec->width_is_index) {
-        arg_sizes[parsed_spec->width_or_index] = sizeof(int);
+        argtypes[parsed_spec->width_or_index] = FMT_ARGTYPE_INT32;
       } else {
         spec->width = parsed_spec->width_or_index;
       }
       if (parsed_spec->precision_is_index) {
-        arg_sizes[parsed_spec->precision_or_index] = sizeof(int);
+        argtypes[parsed_spec->precision_or_index] = FMT_ARGTYPE_INT32;
       } else {
         spec->precision = parsed_spec->precision_or_index;
       }
@@ -343,13 +342,7 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       // =======================
       // SINGLE-PASS
-      if (arg_size < 0) {
-        // invalid type
-        n += fmt_buffer_write(&buf, "{bad type: ", 11);
-        n += fmt_buffer_write(&buf, spec->type, parsed_spec->type_len);
-        n += fmt_buffer_write_char(&buf, '}');
-        continue;
-      } else if (arg_size == 0) {
+      if (spec->argtype == FMT_ARGTYPE_NONE) {
         // no value
         n += fmtlib_format(&buf, spec);
         continue;
@@ -357,7 +350,15 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       // load argument(s)
       for (int i = loaded_arg_count; i < arg_count; i++) {
-        values[i] = LOAD_ARG(i);
+        switch (argtypes[i]) {
+          case FMT_ARGTYPE_NONE: values[i] = fmt_rawvalue_uint64(0); break;
+          case FMT_ARGTYPE_INT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int32_t)); break; // NOLINT(bugprone-branch-clone)
+          case FMT_ARGTYPE_INT64: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int64_t)); break;
+          case FMT_ARGTYPE_UINT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, uint32_t)); break;
+          case FMT_ARGTYPE_UINT64: values[i] = fmt_rawvalue_uint64(va_arg(args_copy, uint64_t)); break;
+          case FMT_ARGTYPE_DOUBLE: values[i] = fmt_rawvalue_double(va_arg(args_copy, double)); break;
+          case FMT_ARGTYPE_VOIDPTR: values[i] = fmt_rawvalue_voidptr(va_arg(args_copy, void*)); break;
+        }
         loaded_arg_count++;
       }
 
@@ -387,7 +388,15 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
   // load argument(s)
   for (int i = loaded_arg_count; i < arg_count; i++) {
-    values[i] = LOAD_ARG(i);
+    switch (argtypes[i]) {
+      case FMT_ARGTYPE_NONE: values[i] = fmt_rawvalue_uint64(0); break;
+      case FMT_ARGTYPE_INT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int32_t)); break; // NOLINT(bugprone-branch-clone)
+      case FMT_ARGTYPE_INT64: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int64_t)); break;
+      case FMT_ARGTYPE_UINT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, uint32_t)); break;
+      case FMT_ARGTYPE_UINT64: values[i] = fmt_rawvalue_uint64(va_arg(args_copy, uint64_t)); break;
+      case FMT_ARGTYPE_DOUBLE: values[i] = fmt_rawvalue_double(va_arg(args_copy, double)); break;
+      case FMT_ARGTYPE_VOIDPTR: values[i] = fmt_rawvalue_voidptr(va_arg(args_copy, void*)); break;
+    }
     loaded_arg_count++;
   }
 
@@ -411,10 +420,10 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       spec->value = values[parsed_spec->index];
       if (parsed_spec->width_is_index) {
-        spec->width = *(int *)values[parsed_spec->width_or_index];
+        spec->width = (int) values[parsed_spec->width_or_index].uint64_value;
       }
       if (parsed_spec->precision_is_index) {
-        spec->precision = *(int *)values[parsed_spec->precision_or_index];
+        spec->precision = (int) values[parsed_spec->precision_or_index].uint64_value;
       }
 
       n += fmtlib_format(&buf, spec);
@@ -432,7 +441,6 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
   va_end(args_copy);
   return n;
-#undef LOAD_ARG
 }
 
 #pragma clang diagnostic pop

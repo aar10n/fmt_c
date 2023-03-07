@@ -44,7 +44,7 @@ static void fmt_test_case(const char *expected, const char *format, ...) __attri
     return;
   }
 
-  uint64_t ns_avg = 0;
+  uint64_t ns_avg;
   for (int i = 0; i < BENCH_ITERATIONS; i++) {
     va_start(args, format);
     start = get_time_ns();
@@ -88,6 +88,8 @@ int main(int argc, char **argv) {
   fmt_test_case(" 42 ", "{:^4d}", 42);
   fmt_test_case("42  ", "{:>4d}", 42);
   fmt_test_case("===== hello =====", "{:$=^17s}", " hello ");
+  fmt_test_case("101............", "{:$.>*b}", 5, 15);
+  fmt_test_case("............101", "{1:$.<*0b}", 15, 5);
 
 
   return 0;
