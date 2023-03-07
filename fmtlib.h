@@ -96,7 +96,7 @@ typedef struct fmt_buffer {
   size_t written;
 } fmt_buffer_t;
 
-static inline fmt_buffer_t fmt_buffer(char *data, size_t size) {
+static inline fmt_buffer_t fmtlib_buffer(char *data, size_t size) {
   memset(data, 0, size);
   return (fmt_buffer_t) {
     .data = data,
@@ -104,11 +104,11 @@ static inline fmt_buffer_t fmt_buffer(char *data, size_t size) {
   };
 }
 
-static inline bool fmt_buffer_full(fmt_buffer_t *b) {
+static inline bool fmtlib_buffer_full(fmt_buffer_t *b) {
   return b->size == 0;
 }
 
-static inline size_t fmt_buffer_write(fmt_buffer_t *b, const char *data, size_t size) {
+static inline size_t fmtlib_buffer_write(fmt_buffer_t *b, const char *data, size_t size) {
   if (b->size == 0)
     return 0;
   size_t n = size < b->size ? size : b->size;
@@ -119,7 +119,7 @@ static inline size_t fmt_buffer_write(fmt_buffer_t *b, const char *data, size_t 
   return n;
 }
 
-static inline size_t fmt_buffer_write_char(fmt_buffer_t *b, char c) {
+static inline size_t fmtlib_buffer_write_char(fmt_buffer_t *b, char c) {
   if (b->size == 0)
     return 0;
   *b->data = c;
@@ -130,19 +130,6 @@ static inline size_t fmt_buffer_write_char(fmt_buffer_t *b, char c) {
 }
 
 // -----------------------------------------------------------------------------
-
-size_t fmtlib_format_signed(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-size_t fmtlib_format_unsigned(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-size_t fmtlib_format_binary(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-size_t fmtlib_format_octal(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-size_t fmtlib_format_hex(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-size_t fmtlib_format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-
-size_t fmtlib_format_string(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-size_t fmtlib_format_char(fmt_buffer_t *buffer, const fmt_spec_t *spec);
-size_t fmtlib_format_type(fmt_buffer_t *buffer, const fmt_spec_t *spec, const char *type);
-
-int fmtlib_atoi(const char *data, size_t size);
 
 /**
  * Registers a new format specifier type.
@@ -171,6 +158,6 @@ int fmtlib_resolve_type(fmt_spec_t *spec);
  * @param spec the format specifier
  * @return the number of bytes written
  */
-size_t fmtlib_format(fmt_buffer_t *buffer, fmt_spec_t *spec);
+size_t fmtlib_format_spec(fmt_buffer_t *buffer, fmt_spec_t *spec);
 
 #endif

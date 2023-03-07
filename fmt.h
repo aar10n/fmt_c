@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+#include "fmtlib.h"
+
 // determines the maximum number of arguments that can be passed to fmt_format.
 // extra arguments are ignored. the `max_args` parameter to fmt_format is clamped
 // to this value.
@@ -29,7 +31,9 @@
  * Format Strings
  * ==============
  *
- * A format string is a string that contains zero or more format specifiers.
+ * A format string is a string that contains zero or more format specifiers. A specifier
+ * is a sequence of characters enclosed between '{' and '}'. To specify a literal '{' use
+ * '{{' and to specify a literal '}', use '}' or '}}'.
  * The overall syntax of a format specifier is:
  *
  *     {[index]:[[$fill]align][flags][width][.precision][type]}
@@ -103,6 +107,7 @@
  *
  *         's'             - string
  *         'c'             - character
+ *         'p'             - pointer
  *
  * Notes:
  *
@@ -122,5 +127,19 @@
  *
  */
 size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, va_list args);
+
+/**
+ * Writes a formatted string to the given fmt_buffer.
+ *
+ * This is intended for use when implementing a custom formatter as a means
+ * to write formatted output to the buffer. You may still use the fmtlib_buffer_
+ * functions to write to the buffer directly.
+ *
+ * @param buffer the buffer to write to
+ * @param format the format string
+ * @param ...
+ * @return the number of bytes written to the buffer
+ */
+size_t fmt_write(fmt_buffer_t *buffer, const char *format, ...);
 
 #endif

@@ -2,4 +2,4 @@ cmake-*
 .idea
 *.o
 *.a
-./test/test
+test/*

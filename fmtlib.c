@@ -3,6 +3,8 @@
 //
 
 #include "fmtlib.h"
+#include "fmt.h"
+
 #include <string.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -86,18 +88,18 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
 
   // write sign or space to buffer
   if (is_negative) {
-    n += fmt_buffer_write_char(buffer, '-');
+    n += fmtlib_buffer_write_char(buffer, '-');
   } else if (spec->flags & FMT_FLAG_SIGN) {
-    n += fmt_buffer_write_char(buffer, '+');
+    n += fmtlib_buffer_write_char(buffer, '+');
   } else if (spec->flags & FMT_FLAG_SPACE) {
-    n += fmt_buffer_write_char(buffer, ' ');
+    n += fmtlib_buffer_write_char(buffer, ' ');
   }
 
   // write prefix for alternate form (e.g. 0x) to buffer
   if (spec->flags & FMT_FLAG_ALT) {
     const char *ptr = format->prefix;
     while (*ptr) {
-      n += fmt_buffer_write_char(buffer, *ptr++);
+      n += fmtlib_buffer_write_char(buffer, *ptr++);
     }
   }
 
@@ -110,7 +112,7 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
   if ((size_t)spec->precision > len) {
     size_t padding = spec->precision - len;
     for (size_t i = 0; i < padding; i++) {
-      n += fmt_buffer_write_char(buffer, '0');
+      n += fmtlib_buffer_write_char(buffer, '0');
     }
   }
 
@@ -123,13 +125,13 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
     if ((size_t)width > len + n) {
       size_t padding = width - len - n;
       for (size_t i = 0; i < padding; i++) {
-        n += fmt_buffer_write_char(buffer, '0');
+        n += fmtlib_buffer_write_char(buffer, '0');
       }
     }
   }
 
   // finally write the number to the buffer
-  n += fmt_buffer_write(buffer, temp, len);
+  n += fmtlib_buffer_write(buffer, temp, len);
   return n;
 }
 
@@ -141,27 +143,27 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
 
   // write sign or space to buffer
   if (v.sign) {
-    n += fmt_buffer_write_char(buffer, '-');
+    n += fmtlib_buffer_write_char(buffer, '-');
   } if (spec->flags & FMT_FLAG_SIGN) {
-    n += fmt_buffer_write_char(buffer, '+');
+    n += fmtlib_buffer_write_char(buffer, '+');
   } else if (spec->flags & FMT_FLAG_SPACE) {
-    n += fmt_buffer_write_char(buffer, ' ');
+    n += fmtlib_buffer_write_char(buffer, ' ');
   }
 
   // handle special encodings
   if (v.exp == 0x7FF && v.frac == 0) {
     // infinity
     const char *inf = spec->flags & FMT_FLAG_UPPER ? "INF" : "inf";
-    n += fmt_buffer_write(buffer, inf, 3);
+    n += fmtlib_buffer_write(buffer, inf, 3);
     return n;
   } else if (v.exp == 0x7FF && v.frac != 0) {
     // NaN
     const char *nan = spec->flags & FMT_FLAG_UPPER ? "NAN" : "nan";
-    n += fmt_buffer_write(buffer, nan, 3);
+    n += fmtlib_buffer_write(buffer, nan, 3);
     return n;
   } else if (v.exp == 0 && v.frac == 0) {
     // zero
-    n += fmt_buffer_write(buffer, "0", 1);
+    n += fmtlib_buffer_write(buffer, "0", 1);
     return n;
   }
 
@@ -216,19 +218,19 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
     if ((size_t)width > len + n) {
       size_t padding = width - len - n;
       for (size_t i = 0; i < padding; i++) {
-        n += fmt_buffer_write_char(buffer, '0');
+        n += fmtlib_buffer_write_char(buffer, '0');
       }
     }
   }
 
   // now write the number to the buffer
-  n += fmt_buffer_write(buffer, temp, len);
+  n += fmtlib_buffer_write(buffer, temp, len);
 
   // finally write the trailing zeros to the buffer
   if ((size_t)spec->precision > frac_len) {
     size_t padding = spec->precision - frac_len;
     for (size_t i = 0; i < padding; i++) {
-      n += fmt_buffer_write_char(buffer, '0');
+      n += fmtlib_buffer_write_char(buffer, '0');
     }
   }
   return n;
@@ -237,7 +239,7 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
 // aligns the string to the spec width
 static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spec, const char *str, size_t len) {
   if (len > (size_t)spec->width) {
-    return fmt_buffer_write(buffer, str, len);
+    return fmtlib_buffer_write(buffer, str, len);
   }
 
   size_t n = 0;
@@ -246,23 +248,23 @@ static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spe
   switch (spec->align) {
     case FMT_ALIGN_LEFT:
       for (size_t i = 0; i < padding; i++) {
-        n += fmt_buffer_write_char(buffer, pad_char);
+        n += fmtlib_buffer_write_char(buffer, pad_char);
       }
-      n += fmt_buffer_write(buffer, str, len);
+      n += fmtlib_buffer_write(buffer, str, len);
       break;
     case FMT_ALIGN_RIGHT:
-      n += fmt_buffer_write(buffer, str, len);
+      n += fmtlib_buffer_write(buffer, str, len);
       for (size_t i = 0; i < padding; i++) {
-        n += fmt_buffer_write_char(buffer, pad_char);
+        n += fmtlib_buffer_write_char(buffer, pad_char);
       }
       break;
     case FMT_ALIGN_CENTER:
       for (size_t i = 0; i < padding / 2; i++) {
-        n += fmt_buffer_write_char(buffer, pad_char);
+        n += fmtlib_buffer_write_char(buffer, pad_char);
       }
-      n += fmt_buffer_write(buffer, str, len);
+      n += fmtlib_buffer_write(buffer, str, len);
       for (size_t i = 0; i < padding - padding / 2; i++) {
-        n += fmt_buffer_write_char(buffer, pad_char);
+        n += fmtlib_buffer_write_char(buffer, pad_char);
       }
       break;
   }
@@ -274,7 +276,7 @@ static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spe
 
 size_t fmtlib_format_signed(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmt_buffer(value_data, TEMP_BUFFER_SIZE);
+  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
 
   size_t len = format_integer(&value, spec, true, &decimal_format);
   return apply_alignment(buffer, spec, value_data, len);
@@ -282,7 +284,7 @@ size_t fmtlib_format_signed(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
 
 size_t fmtlib_format_unsigned(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmt_buffer(value_data, TEMP_BUFFER_SIZE);
+  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
 
   size_t len = format_integer(&value, spec, false, &decimal_format);
   return apply_alignment(buffer, spec, value_data, len);
@@ -290,7 +292,7 @@ size_t fmtlib_format_unsigned(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
 
 size_t fmtlib_format_binary(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmt_buffer(value_data, TEMP_BUFFER_SIZE);
+  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
 
   size_t len = format_integer(&value, spec, false, &binary_format);
   return apply_alignment(buffer, spec, value_data, len);
@@ -298,7 +300,7 @@ size_t fmtlib_format_binary(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
 
 size_t fmtlib_format_octal(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmt_buffer(value_data, TEMP_BUFFER_SIZE);
+  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
 
   size_t len = format_integer(&value, spec, false, &octal_format);
   return apply_alignment(buffer, spec, value_data, len);
@@ -307,7 +309,7 @@ size_t fmtlib_format_octal(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
 size_t fmtlib_format_hex(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   const struct num_format *format = spec->flags & FMT_FLAG_UPPER ? &hex_upper_format : &hex_lower_format;
   char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmt_buffer(value_data, TEMP_BUFFER_SIZE);
+  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
 
   size_t len = format_integer(&value, spec, false, format);
   return apply_alignment(buffer, spec, value_data, len);
@@ -315,7 +317,7 @@ size_t fmtlib_format_hex(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
 
 size_t fmtlib_format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmt_buffer(value_data, TEMP_BUFFER_SIZE);
+  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
 
   size_t len = format_double(&value, spec);
   return apply_alignment(buffer, spec, value_data, len);
@@ -332,7 +334,7 @@ size_t fmtlib_format_string(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   }
 
   if (spec->width == 0) {
-    return fmt_buffer_write(buffer, str, len);
+    return fmtlib_buffer_write(buffer, str, len);
   }
 
   // width specified, align the string
@@ -349,27 +351,11 @@ size_t fmtlib_format_char(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   }
 
   if (spec->width == 0) {
-    return fmt_buffer_write(buffer, str, len);
+    return fmtlib_buffer_write(buffer, str, len);
   }
 
   // width specified, align the char
   return apply_alignment(buffer, spec, str, len);
-}
-
-int fmtlib_atoi(const char *data, size_t size) {
-  int value = 0;
-  int sign = 1;
-  if (data[0] == '-') {
-    sign = -1;
-    data++;
-    size--;
-  }
-
-  for (size_t i = 0; i < size; i++) {
-    value *= 10;
-    value += data[i] - '0';
-  }
-  return sign * value;
 }
 
 //
@@ -430,6 +416,10 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
       case 'c':
         spec->argtype = FMT_ARGTYPE_INT32;
         spec->formatter = fmtlib_format_char;
+      case 'p':
+        spec->flags |= FMT_FLAG_ALT;
+        spec->argtype = FMT_ARGTYPE_VOIDPTR;
+        spec->formatter = fmtlib_format_hex;
         return 1;
       default:
         break;
@@ -468,7 +458,7 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
     if (strcmp(format_types[i].type, type) == 0) {
       spec->argtype = format_types[i].argtype;
       spec->formatter = format_types[i].fn;
-      return format_types[i].argtype;
+      return 1;
     }
   }
 
@@ -478,7 +468,7 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
   return 0;
 }
 
-size_t fmtlib_format(fmt_buffer_t *buffer, fmt_spec_t *spec) {
+size_t fmtlib_format_spec(fmt_buffer_t *buffer, fmt_spec_t *spec) {
   if (spec->type_len == 0) {
     // no type specified, just apply alignment/padding
     return apply_alignment(buffer, spec, "", 0);

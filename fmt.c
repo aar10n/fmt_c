@@ -33,7 +33,21 @@ static inline int read_int(const char **ptr) {
   while (is_digit(**ptr)) {
     (*ptr)++;
   }
-  return fmtlib_atoi(start, *ptr - start);
+
+  size_t size = *ptr - start;
+  int value = 0;
+  int sign = 1;
+  if (start[0] == '-') {
+    sign = -1;
+    start++;
+    size--;
+  }
+
+  for (size_t i = 0; i < size; i++) {
+    value *= 10;
+    value += start[i] - '0';
+  }
+  return sign * value;
 }
 
 size_t parse_fmt_spec(const char *format, int max_args, int *arg_index, int *arg_count, parsed_fmt_spec_t *spec) {
@@ -239,7 +253,7 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
   va_copy(args_copy, args);
 
   size_t n = 0;
-  fmt_buffer_t buf = fmt_buffer(buffer, size);
+  fmt_buffer_t buf = fmtlib_buffer(buffer, size);
 
   // the formatter has two different modes of operation depending on the format string.
   // it always starts in single-pass mode, in which it writes to the buffer as it scans
@@ -271,12 +285,12 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
   const char *ptr = format;
   const char *pass_two_start;
-  while (*ptr && !fmt_buffer_full(&buf)) {
+  while (*ptr && !fmtlib_buffer_full(&buf)) {
     // start of fmt specifier
     if (*ptr == '{') {
       if (*(ptr + 1) == '{') { // escaped
         if (single_pass)
-          n += fmt_buffer_write_char(&buf, '{');
+          n += fmtlib_buffer_write_char(&buf, '{');
 
         ptr += 2;
         continue;
@@ -315,9 +329,9 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       if (!fmtlib_resolve_type(spec)) {
         if (single_pass) {
           // invalid type
-          n += fmt_buffer_write(&buf, "{bad type: ", 11);
-          n += fmt_buffer_write(&buf, spec->type, parsed_spec->type_len);
-          n += fmt_buffer_write_char(&buf, '}');
+          n += fmtlib_buffer_write(&buf, "{bad type: ", 11);
+          n += fmtlib_buffer_write(&buf, spec->type, parsed_spec->type_len);
+          n += fmtlib_buffer_write_char(&buf, '}');
         }
 
         argtypes[parsed_spec->index] = FMT_ARGTYPE_NONE;
@@ -344,7 +358,7 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       // SINGLE-PASS
       if (spec->argtype == FMT_ARGTYPE_NONE) {
         // no value
-        n += fmtlib_format(&buf, spec);
+        n += fmtlib_format_spec(&buf, spec);
         continue;
       }
 
@@ -371,10 +385,17 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       }
 
       // format
-      n += fmtlib_format(&buf, spec);
+      n += fmtlib_format_spec(&buf, spec);
+    } else if (*ptr == '}') {
+      if (single_pass)
+        n += fmtlib_buffer_write_char(&buf, '}');
+
+      ptr++;
+      if (*ptr == '}')
+        ptr++; // skip extra to allow for balanced escaped braces
     } else {
       if (single_pass)
-        n += fmt_buffer_write_char(&buf, *ptr);
+        n += fmtlib_buffer_write_char(&buf, *ptr);
 
       ptr++;
     }
@@ -404,10 +425,10 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
   // have to reparse the specifiers
   ptr = pass_two_start;
   int index = pass_two_index;
-  while (*ptr && !fmt_buffer_full(&buf) && index < spec_index) {
+  while (*ptr && !fmtlib_buffer_full(&buf) && index < spec_index) {
     if (*ptr == '{') {
       if (*(ptr + 1) == '{') { // escaped
-        n += fmt_buffer_write_char(&buf, '{');
+        n += fmtlib_buffer_write_char(&buf, '{');
         ptr += 2;
         continue;
       }
@@ -426,20 +447,37 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
         spec->precision = (int) values[parsed_spec->precision_or_index].uint64_value;
       }
 
-      n += fmtlib_format(&buf, spec);
+      n += fmtlib_format_spec(&buf, spec);
       ptr = spec->end;
+    } else if (*ptr == '}') {
+      n += fmtlib_buffer_write_char(&buf, '}');
+      ptr++;
+      if (*ptr == '}')
+        ptr++;
     } else {
-      n += fmt_buffer_write_char(&buf, *ptr);
+      n += fmtlib_buffer_write_char(&buf, *ptr);
       ptr++;
     }
   }
 
-  while (*ptr && !fmt_buffer_full(&buf)) {
-    n += fmt_buffer_write_char(&buf, *ptr);
+  while (*ptr && !fmtlib_buffer_full(&buf)) {
+    n += fmtlib_buffer_write_char(&buf, *ptr);
     ptr++;
   }
 
   va_end(args_copy);
+  return n;
+}
+
+size_t fmt_write(fmt_buffer_t *buffer, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  size_t n = fmt_format(format, buffer->data, buffer->size, FMT_MAX_ARGS, args);
+  va_end(args);
+
+  buffer->written += n;
+  buffer->data += n;
+  buffer->size -= n;
   return n;
 }
 

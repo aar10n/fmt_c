@@ -5,7 +5,9 @@
 Format Strings
 ==============
 
-A format string is a string that contains zero or more format specifiers.
+A format string is a string that contains zero or more format specifiers. A specifier
+is a sequence of characters enclosed between '{' and '}'. To specify a literal '{' use
+'{{' and to specify a literal '}', use '}' or '}}'.
 The overall syntax of a format specifier is:
 
     {[index]:[[$fill]align][flags][width][.precision][type]}
@@ -79,6 +81,7 @@ type
 
         's'             - string
         'c'             - character
+        'p'             - pointer
 
 Notes:
   - The maximum number of arguments supported by the fmt funcions is defined by the
@@ -120,4 +123,5 @@ Output of test/test.c:
 [PASS] "===== hello =====" in 175 ns
 [PASS] "101............" in 194 ns
 [PASS] "............101" in 170 ns
+[PASS] "{42, 3}" in 268 ns
 ```

@@ -1,14 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
-#include <sys/time.h>
-
-#ifdef __MACH__
 #include <mach/mach_time.h>
-#endif
 
-
-#include "fmt.h"
+#include <fmt.h>
+#include <fmtlib.h>
 
 #define RED "\x1b[1;31m"
 #define GREEN "\x1b[1;32m"
@@ -59,8 +54,24 @@ static void fmt_test_case(const char *expected, const char *format, ...) __attri
 }
 
 
+// custom formatter
+
+struct my_struct {
+  int a;
+  int b;
+};
+
+const fmt_argtype_t my_argtype = FMT_ARGTYPE_VOIDPTR; // take by reference
+
+static size_t my_formatter(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  struct my_struct *s = spec->value.voidptr_value;
+  return fmt_write(buffer, "{{{:d}, {:d}}}", s->a, s->b);
+}
+
 int main(int argc, char **argv) {
   mach_timebase_info(&info);
+
+  fmtlib_register_type("test", my_formatter, my_argtype);
 
   // basic
   fmt_test_case("Hello, world!", "Hello, world!");
@@ -91,6 +102,9 @@ int main(int argc, char **argv) {
   fmt_test_case("101............", "{:$.>*b}", 5, 15);
   fmt_test_case("............101", "{1:$.<*0b}", 15, 5);
 
+  // custom formatter
+  struct my_struct s = { 42, 3 };
+  fmt_test_case("{42, 3}", "{:test}", &s);
 
   return 0;
 }
