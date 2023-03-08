@@ -91,18 +91,20 @@ int main(int argc, char **argv) {
   fmt_test_case("007", "{:03d}", 7);
   fmt_test_case("-007", "{:04d}", -7);
   fmt_test_case("+007", "{:+04d}", 7);
+  fmt_test_case("1   ", "{:4d}", 1);
+  fmt_test_case("   1", "{:-4d}", 1);
   fmt_test_case(" 42", "{: d}", 42);
   fmt_test_case("-42", "{: d}", -42);
   fmt_test_case("3", "{:#.1f}", 3.f);
   fmt_test_case("3.1", "{:#.1f}", 3.1);
 
   // alignment/fill
-  fmt_test_case("  42", "{:4d}", 42);
+  fmt_test_case("42  ", "{:4d}", 42);
   fmt_test_case(" 42 ", "{:^4d}", 42);
-  fmt_test_case("42  ", "{:>4d}", 42);
+  fmt_test_case("  42", "{:>4d}", 42);
   fmt_test_case("===== hello =====", "{:$=^17s}", " hello ");
-  fmt_test_case("101............", "{:$.>*b}", 5, 15);
-  fmt_test_case("............101", "{1:$.<*0b}", 15, 5);
+  fmt_test_case("............101", "{:$.>*b}", 5, 15);
+  fmt_test_case("101............", "{1:$.<*0b}", 15, 5);
 
   // precision
   fmt_test_case("3.14", "{:.2f}", 3.141592653);

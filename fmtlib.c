@@ -258,16 +258,16 @@ static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spe
   char pad_char = spec->fill_char;
   switch (spec->align) {
     case FMT_ALIGN_LEFT:
+      n += fmtlib_buffer_write(buffer, str, len);
       for (size_t i = 0; i < padding; i++) {
         n += fmtlib_buffer_write_char(buffer, pad_char);
       }
-      n += fmtlib_buffer_write(buffer, str, len);
       break;
     case FMT_ALIGN_RIGHT:
-      n += fmtlib_buffer_write(buffer, str, len);
       for (size_t i = 0; i < padding; i++) {
         n += fmtlib_buffer_write_char(buffer, pad_char);
       }
+      n += fmtlib_buffer_write(buffer, str, len);
       break;
     case FMT_ALIGN_CENTER:
       for (size_t i = 0; i < padding / 2; i++) {

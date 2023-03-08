@@ -108,35 +108,37 @@ sure there isn't any obvious slowdowns.
 
 Apple M1 Pro 10C 32GB
 ```
-[PASS] "Hello, world!" in 151 ns
-[PASS] "Hello, world!" in 129 ns
-[PASS] "42" in 144 ns
-[PASS] "2a" in 136 ns
-[PASS] "3.14" in 151 ns
-[PASS] "3.14, 42" in 182 ns
-[PASS] "42, 3.14" in 187 ns
-[PASS] "3.14, string, 42" in 214 ns
-[PASS] "0x2a" in 142 ns
+[PASS] "Hello, world!" in 171 ns
+[PASS] "Hello, world!" in 139 ns
+[PASS] "42" in 145 ns
+[PASS] "2a" in 142 ns
+[PASS] "3.14" in 169 ns
+[PASS] "3.14, 42" in 195 ns
+[PASS] "42, 3.14" in 214 ns
+[PASS] "3.14, string, 42" in 224 ns
+[PASS] "0x2a" in 146 ns
 [PASS] "2A" in 138 ns
-[PASS] "007" in 146 ns
-[PASS] "-007" in 159 ns
-[PASS] "+007" in 155 ns
-[PASS] " 42" in 135 ns
-[PASS] "-42" in 138 ns
-[PASS] "3" in 171 ns
-[PASS] "3.1" in 175 ns
-[PASS] "  42" in 138 ns
-[PASS] " 42 " in 157 ns
-[PASS] "42  " in 150 ns
-[PASS] "===== hello =====" in 160 ns
-[PASS] "101............" in 175 ns
-[PASS] "............101" in 166 ns
-[PASS] "3.14" in 150 ns
-[PASS] "3.141592653" in 171 ns
-[PASS] "3.141592654" in 161 ns
-[PASS] "3.141592654" in 161 ns
-[PASS] "0.1234" in 138 ns
-[PASS] "0.1234" in 146 ns
-[PASS] "{42, 3}" in 268 ns
+[PASS] "007" in 154 ns
+[PASS] "-007" in 154 ns
+[PASS] "+007" in 153 ns
+[PASS] "1   " in 142 ns
+[PASS] "   1" in 151 ns
+[PASS] " 42" in 133 ns
+[PASS] "-42" in 131 ns
+[PASS] "3" in 143 ns
+[PASS] "3.1" in 152 ns
+[PASS] "42  " in 132 ns
+[PASS] " 42 " in 156 ns
+[PASS] "  42" in 150 ns
+[PASS] "===== hello =====" in 161 ns
+[PASS] "............101" in 173 ns
+[PASS] "101............" in 176 ns
+[PASS] "3.14" in 149 ns
+[PASS] "3.141592653" in 165 ns
+[PASS] "3.141592654" in 157 ns
+[PASS] "3.141592654" in 170 ns
+[PASS] "0.1234" in 135 ns
+[PASS] "0.1234" in 147 ns
+[PASS] "{42, 3}" in 259 ns
 ```
 See `test/test.c` for the full test suite.
