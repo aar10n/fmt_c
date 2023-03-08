@@ -151,6 +151,14 @@ void fmtlib_register_type(const char *type, fmt_formatter_t fn, fmt_argtype_t ar
 int fmtlib_resolve_type(fmt_spec_t *spec);
 
 /**
+ * Parses a type within a printf-style specifier.
+ * @param format A pointer to the start of the type.
+ * @param [out] end A pointer to a const char* which will be set to the end of the type.
+ * @return The length of the type or 0 if the type is not valid.
+ */
+size_t fmtlib_parse_printf_type(const char *format, const char **end);
+
+/**
  * Formats a string according to the given format specifier.
  *
  * @param buffer the buffer to write the formatted to

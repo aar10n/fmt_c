@@ -479,6 +479,46 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
   return 0;
 }
 
+size_t fmtlib_parse_printf_type(const char *format, const char **end) {
+  // %[flags][width][.precision]type
+  //    `                       ^ format
+  const char *ptr = format;
+  if (*ptr == 0) {
+    *end = ptr;
+    return 0;
+  }
+
+  switch (*ptr) {
+    case 'd': case 'u': case 'b':
+    case 'o': case 'x': case 'X':
+    case 'f': case 'F': case 's':
+    case 'c': case 'p':
+      *end = ptr + 1;
+      return 1;
+    case 'l':
+      if (ptr[1] == 'l') {
+        if (ptr[2] == 'd' || ptr[2] == 'u' || ptr[2] == 'b' ||
+            ptr[2] == 'o' || ptr[2] == 'x' || ptr[2] == 'X') {
+          *end = ptr + 3;
+          return 3;
+        }
+      }
+      break;
+  }
+
+  // check user types, but only check ones that are a single character
+  for (size_t i = 0; i < num_format_types; i++) {
+    size_t type_len = strlen(format_types[i].type);
+    if (type_len == 1 && format_types[i].type[0] == *ptr) {
+      *end = ptr + 1;
+      return 1;
+    }
+  }
+
+  *end = format;
+  return 0;
+}
+
 size_t fmtlib_format_spec(fmt_buffer_t *buffer, fmt_spec_t *spec) {
   if (spec->type_len == 0) {
     // no type specified, just apply alignment/padding

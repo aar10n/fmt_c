@@ -51,7 +51,7 @@ static inline int read_int(const char **ptr) {
 }
 
 // parses fmt '{...}' specifiers
-size_t parse_fmt_spec(const char *format, int max_args, int *arg_index, int *arg_count, parsed_fmt_spec_t *spec) {
+static inline size_t parse_fmt_spec(const char *format, int max_args, int *arg_index, int *arg_count, parsed_fmt_spec_t *spec) {
 #define CHECK_MAX_ARGS(idx) ({ \
     if ((idx) >= max_args) {  \
       goto early_exit;            \
@@ -250,6 +250,113 @@ early_exit:
 #undef CHECK_MAX_ARGS
 }
 
+// parses printf '%...' specifiers
+// TODO: maybe support positional arguments and dynamic width/precision
+static inline size_t parse_printf_spec(const char *format, int max_args, int *arg_index, int *arg_count, parsed_fmt_spec_t *spec) {
+#define CHECK_MAX_ARGS(idx) ({ \
+    if ((idx) >= max_args) {  \
+      goto early_exit;            \
+    }                             \
+  })
+#define CHECK_EOF(ptr) ({ \
+    if (*(ptr) == 0)      \
+      goto early_exit;    \
+  })
+
+  if (*format != '%') {
+    return 0;
+  }
+
+  // %[flags][width][.precision]type
+  // ^ format
+  const char *end;
+  const char *ptr = format + 1;
+
+  int index;
+  int flags;
+  int width;
+  int precision = 0;
+  fmt_align_t align = FMT_ALIGN_LEFT;
+  char fill_char = ' ';
+  int new_arg_index = *arg_index;
+
+  CHECK_MAX_ARGS(new_arg_index);
+  index = new_arg_index;
+  new_arg_index++;
+
+  // ====== flags ======
+  CHECK_EOF(ptr);
+  flags = 0;
+parse_flags:
+  switch (*ptr) {
+    case '#': flags |= FMT_FLAG_ALT; ptr++;
+      goto parse_flags;
+    // '!' not in printf
+    case '0': flags |= FMT_FLAG_ZERO; fill_char = '0'; ptr++;
+      goto parse_flags;
+    case '+': flags |= FMT_FLAG_SIGN; ptr++;
+      goto parse_flags;
+    case '-': align = FMT_ALIGN_RIGHT; ptr++; // fake flag
+      flags &= ~FMT_FLAG_ZERO;
+      goto parse_flags;
+    case ' ': flags |= FMT_FLAG_SPACE; ptr++;
+      goto parse_flags;
+  }
+
+  // ====== width ======
+  CHECK_EOF(ptr);
+  if (is_digit(*ptr)) {
+    width = read_int(&ptr);
+  }
+
+  // ====== precision ======
+  CHECK_EOF(ptr);
+  if (*ptr == '.') {
+    ptr++;
+    if (is_digit(*ptr)) {
+      precision = read_int(&ptr);
+    } else {
+      goto early_exit;
+    }
+  }
+
+  // we have built-in types like "lld" and "x" which implicity encode the length
+  // in a backward compatible-way so we don't need to parse the length specifier
+  // separately
+
+  // ====== type ======
+  if (!fmtlib_parse_printf_type(ptr, &end)) {
+    goto early_exit;
+  }
+
+  // ====== finish ======
+  spec->index = index;
+  spec->flags = flags;
+  spec->width_or_index = width;
+  spec->width_is_index = false;
+  spec->precision_or_index = precision;
+  spec->precision_is_index = false;
+  spec->align = align;
+  spec->fill_char = fill_char;
+  spec->type = ptr;
+  spec->type_len = end - ptr;
+  spec->valid = true;
+
+  int max_arg_index = index;
+  *arg_count = max(*arg_count, max_arg_index + 1);
+  *arg_index = new_arg_index;
+  return end - format;
+
+  //
+  // ERROR
+early_exit:
+  // something went wrong, bail out
+  spec->valid = false;
+  return format - ptr + 1;
+#undef CHECK_EOF
+#undef CHECK_MAX_ARGS
+}
+
 //
 
 size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, va_list args) {
@@ -291,10 +398,11 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
   const char *pass_two_start;
   while (*ptr && !fmtlib_buffer_full(&buf)) {
     // start of fmt specifier
-    if (*ptr == '{') {
-      if (*(ptr + 1) == '{') { // escaped
+    if (*ptr == '{' || *ptr == '%') {
+      char format_char = *ptr;
+      if ((format_char == '{' && *(ptr + 1) == '{') || (format_char == '%' && *(ptr + 1) == '%')) { // escaped
         if (single_pass)
-          n += fmtlib_buffer_write_char(&buf, '{');
+          n += fmtlib_buffer_write_char(&buf, *ptr);
 
         ptr += 2;
         continue;
@@ -307,7 +415,13 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       parsed_fmt_spec_t *parsed_spec = &parsed_specs[cur_spec_index];
       fmt_spec_t *spec = &specs[cur_spec_index];
-      size_t m = parse_fmt_spec(ptr, max_args, &arg_index, &arg_count, parsed_spec);
+      size_t m;
+      if (format_char == '{') {
+        m = parse_fmt_spec(ptr, max_args, &arg_index, &arg_count, parsed_spec);
+      } else {
+        m = parse_printf_spec(ptr, max_args, &arg_index, &arg_count, parsed_spec);
+        // printf("parsed width: %d | is index: %d\n", parsed_spec->width_or_index, parsed_spec->width_is_index);
+      }
       spec->end = ptr + m;
       ptr += m;
       if (!parsed_spec->valid)
@@ -331,7 +445,7 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       // resolve specifier type
       if (!fmtlib_resolve_type(spec)) {
-        if (single_pass) {
+        if (format_char == '{' && single_pass) {
           // invalid type
           n += fmtlib_buffer_write(&buf, "{bad type: ", 11);
           n += fmtlib_buffer_write(&buf, spec->type, parsed_spec->type_len);
@@ -382,10 +496,10 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       spec->value = values[parsed_spec->index];
       if (parsed_spec->width_is_index) {
-        spec->width = *(int *)&values[parsed_spec->width_or_index];
+        spec->width = (int) values[parsed_spec->width_or_index].uint64_value;
       }
       if (parsed_spec->precision_is_index) {
-        spec->precision = *(int *)&values[parsed_spec->precision_or_index];
+        spec->precision = (int) values[parsed_spec->precision_or_index].uint64_value;
       }
 
       // format
@@ -398,10 +512,10 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       if (*ptr == '}')
         ptr++; // skip extra to allow for balanced escaped braces
     } else {
-      if (single_pass)
-        n += fmtlib_buffer_write_char(&buf, *ptr);
+        if (single_pass)
+          n += fmtlib_buffer_write_char(&buf, *ptr);
 
-      ptr++;
+        ptr++;
     }
   }
 

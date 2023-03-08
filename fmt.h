@@ -32,8 +32,9 @@
  * ==============
  *
  * A format string is a string that contains zero or more format specifiers. A specifier
- * is a sequence of characters enclosed between '{' and '}'. To specify a literal '{' use
- * '{{' and to specify a literal '}', use '}' or '}}'.
+ * is a sequence of characters enclosed between '{' and '}', but printf style specifiers
+ * using '%' are also supported. To specify a literal '{' use '{{' and for '}', use '}'
+ * or '}}'.
  * The overall syntax of a format specifier is:
  *
  *     {[index]:[[$fill]align][flags][width][.precision][type]}

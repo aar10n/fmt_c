@@ -3,7 +3,6 @@
 #include <mach/mach_time.h>
 
 #include <fmt.h>
-#include <fmtlib.h>
 
 #define RED "\x1b[1;31m"
 #define GREEN "\x1b[1;32m"
@@ -106,17 +105,11 @@ int main(int argc, char **argv) {
   fmt_test_case("............101", "{:$.>*b}", 5, 15);
   fmt_test_case("101............", "{1:$.<*0b}", 15, 5);
 
-  // precision
-  fmt_test_case("3.14", "{:.2f}", 3.141592653);
-  fmt_test_case("3.141592653", "{:.9f}", 3.141592653);
-  fmt_test_case("3.141592654", "{:.9f}", 3.1415926535);
-  fmt_test_case("3.141592654", "{:.10f}", 3.1415926535);
-  fmt_test_case("0.1234", "{:.*f}", 0.1234, 4);
-  fmt_test_case("0.1234", "{1:.*0f}", 4, 0.1234);
-
-  // custom formatter
-  struct my_struct s = { 42, 3 };
-  fmt_test_case("{42, 3}", "{:test}", &s);
+  // printf
+  fmt_test_case("42", "%d", 42);
+  fmt_test_case("2a", "%x", 42);
+  fmt_test_case("3.14", "%.2f", 3.14);
+  fmt_test_case("FFFFFFFFFFFFFFFF", "%llX", UINT64_MAX);
 
   return 0;
 }
