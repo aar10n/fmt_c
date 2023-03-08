@@ -2,7 +2,7 @@
 #include <string.h>
 #include <mach/mach_time.h>
 
-#include <fmt.h>
+#include "fmt.h"
 
 #define RED "\x1b[1;31m"
 #define GREEN "\x1b[1;32m"

@@ -8,7 +8,7 @@ LIB_OBJS := $(LIB_SRCS:.c=.o)
 LIB_CFLAGS := $(CFLAGS) -Ofast -ffreestanding -fno-omit-frame-pointer -Wno-gnu-statement-expression
 LIB_LDFLAGS := $(LDFLAGS) -nostdlib -nostdinc
 
-TEST_SRCS := test/test.c
+TEST_SRCS := test.c
 TEST_OBJS := $(TEST_SRCS:.c=.o)
 TEST_CFLAGS := $(CFLAGS)
 TEST_LDFLAGS := $(LDFLAGS)
@@ -21,13 +21,13 @@ lib: $(LIB_OBJS)
 	$(AR) rcs libfmt.a $(LIB_OBJS)
 
 test: $(TEST_OBJS) lib
-	$(CC) $(TEST_LDFLAGS) $(TEST_OBJS) -o test/test -L. -lfmt 
+	$(CC) $(TEST_LDFLAGS) $(TEST_OBJS) -o test -L. -lfmt
 
 clean:
 	rm -f $(LIB_OBJS)
 	rm -f $(TEST_OBJS)
 	rm -f libfmt.a
-	rm -f test/test
+	rm -f test
 
 
 test/%.o: test/%.c

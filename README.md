@@ -142,4 +142,4 @@ Apple M1 Pro 10C 32GB
 [PASS] "0.1234" in 147 ns
 [PASS] "{42, 3}" in 259 ns
 ```
-See `test/test.c` for the full test suite.
+See `test.c` for the full test suite.
