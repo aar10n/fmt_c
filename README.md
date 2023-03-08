@@ -101,6 +101,10 @@ Examples:
 ```
 
 ##### Benchmarks/Tests:
+I would never claim this to be the fastest string formatting library, and performance
+isn't a primary concern. However, the test suite also benchmarks the library to make
+sure there isn't any obvious slowdowns.
+
 Apple M1 Pro 10C 32GB
 ```
 [PASS] "Hello, world!" in 151 ns
