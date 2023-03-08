@@ -50,6 +50,7 @@ static inline int read_int(const char **ptr) {
   return sign * value;
 }
 
+// parses fmt '{...}' specifiers
 size_t parse_fmt_spec(const char *format, int max_args, int *arg_index, int *arg_count, parsed_fmt_spec_t *spec) {
 #define CHECK_MAX_ARGS(idx) ({ \
     if ((idx) >= max_args) {  \
@@ -145,6 +146,9 @@ parse_flags:
     case '0': flags |= FMT_FLAG_ZERO; fill_char = '0'; ptr++;
       goto parse_flags;
     case '+': flags |= FMT_FLAG_SIGN; ptr++;
+      goto parse_flags;
+    case '-': align = FMT_ALIGN_RIGHT; ptr++; // fake flag
+      flags &= ~FMT_FLAG_ZERO;
       goto parse_flags;
     case ' ': flags |= FMT_FLAG_SPACE; ptr++;
       goto parse_flags;

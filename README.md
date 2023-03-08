@@ -38,6 +38,7 @@ flags
         '0'       - sets the fill character to '0'
                     for numeric values, pad with leading zeros up to width (conflicts with `align`)
         '+'       - always print sign for numeric values
+        '-'       - right align (overrides align and zero)
         ' '       - leave a space in front of positive numeric values (conflicts with '+')
 
 width
