@@ -100,28 +100,38 @@ Examples:
     
 ```
 
-Output of test/test.c:
+##### Benchmarks/Tests:
+Apple M1 Pro 10C 32GB
 ```
-[PASS] "Hello, world!" in 161 ns
-[PASS] "Hello, world!" in 131 ns
-[PASS] "42" in 139 ns
-[PASS] "2a" in 138 ns
-[PASS] "3.14" in 157 ns
-[PASS] "3.14, 42" in 197 ns
-[PASS] "42, 3.14" in 184 ns
+[PASS] "Hello, world!" in 151 ns
+[PASS] "Hello, world!" in 129 ns
+[PASS] "42" in 144 ns
+[PASS] "2a" in 136 ns
+[PASS] "3.14" in 151 ns
+[PASS] "3.14, 42" in 182 ns
+[PASS] "42, 3.14" in 187 ns
 [PASS] "3.14, string, 42" in 214 ns
-[PASS] "0x2a" in 135 ns
+[PASS] "0x2a" in 142 ns
 [PASS] "2A" in 138 ns
 [PASS] "007" in 146 ns
-[PASS] "-007" in 155 ns
-[PASS] "+007" in 157 ns
-[PASS] " 42" in 132 ns
-[PASS] "-42" in 132 ns
-[PASS] "  42" in 132 ns
-[PASS] " 42 " in 153 ns
-[PASS] "42  " in 160 ns
-[PASS] "===== hello =====" in 175 ns
-[PASS] "101............" in 194 ns
-[PASS] "............101" in 170 ns
+[PASS] "-007" in 159 ns
+[PASS] "+007" in 155 ns
+[PASS] " 42" in 135 ns
+[PASS] "-42" in 138 ns
+[PASS] "3" in 171 ns
+[PASS] "3.1" in 175 ns
+[PASS] "  42" in 138 ns
+[PASS] " 42 " in 157 ns
+[PASS] "42  " in 150 ns
+[PASS] "===== hello =====" in 160 ns
+[PASS] "101............" in 175 ns
+[PASS] "............101" in 166 ns
+[PASS] "3.14" in 150 ns
+[PASS] "3.141592653" in 171 ns
+[PASS] "3.141592654" in 161 ns
+[PASS] "3.141592654" in 161 ns
+[PASS] "0.1234" in 138 ns
+[PASS] "0.1234" in 146 ns
 [PASS] "{42, 3}" in 268 ns
 ```
+See `test/test.c` for the full test suite.

@@ -93,6 +93,8 @@ int main(int argc, char **argv) {
   fmt_test_case("+007", "{:+04d}", 7);
   fmt_test_case(" 42", "{: d}", 42);
   fmt_test_case("-42", "{: d}", -42);
+  fmt_test_case("3", "{:#.1f}", 3.f);
+  fmt_test_case("3.1", "{:#.1f}", 3.1);
 
   // alignment/fill
   fmt_test_case("  42", "{:4d}", 42);
@@ -101,6 +103,14 @@ int main(int argc, char **argv) {
   fmt_test_case("===== hello =====", "{:$=^17s}", " hello ");
   fmt_test_case("101............", "{:$.>*b}", 5, 15);
   fmt_test_case("............101", "{1:$.<*0b}", 15, 5);
+
+  // precision
+  fmt_test_case("3.14", "{:.2f}", 3.141592653);
+  fmt_test_case("3.141592653", "{:.9f}", 3.141592653);
+  fmt_test_case("3.141592654", "{:.9f}", 3.1415926535);
+  fmt_test_case("3.141592654", "{:.10f}", 3.1415926535);
+  fmt_test_case("0.1234", "{:.*f}", 0.1234, 4);
+  fmt_test_case("0.1234", "{1:.*0f}", 4, 0.1234);
 
   // custom formatter
   struct my_struct s = { 42, 3 };

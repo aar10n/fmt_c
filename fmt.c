@@ -191,7 +191,7 @@ parse_precision:
       } else {
         CHECK_MAX_ARGS(new_arg_index);
         precision_or_index = new_arg_index;
-        precision_is_index = false;
+        precision_is_index = true;
         new_arg_index++;
       }
     } else {

@@ -18,11 +18,10 @@
 // `fmt_register_type` function with your unique type name, the type of the
 // argument for your specifier, and a function which will format the value.
 //
-// The formatter function should use the fmt_buffer_ functions when writing
-// to the buffer, and it should return the number of bytes actually written.
+// The formatter function should use the fmt_write and fmtlib_buffer_ functions
+// to write to the buffer, and should return the number of bytes written.
 
 // determines the maximum width that can be specified
-// this should be large enough to handle any reasonable use case
 #define FMTLIB_MAX_WIDTH 256
 
 // determines the maximum number of user defined specifier types that can be registered

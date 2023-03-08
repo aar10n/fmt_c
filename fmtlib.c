@@ -10,6 +10,9 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
+// using a precision over 9 can lead to overflow errors
+#define PRECISION_DEFAULT 6
+#define PRECISION_MAX 9
 #define TEMP_BUFFER_SIZE (FMTLIB_MAX_WIDTH + 1)
 
 typedef struct fmt_format_type {
@@ -136,9 +139,12 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
 }
 
 // Writes a floating point number to the buffer.
+// respects numeric flags. also supports the ALT flag for truncated
+// representations of whole numbers (e.g. 1.000000 -> 1).
 static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   union double_raw v = { .value = spec->value.double_value };
-  int width = min(max(spec->width, 0), FMTLIB_MAX_WIDTH);
+  size_t width = (size_t) min(max(spec->width, 0), FMTLIB_MAX_WIDTH);
+  size_t prec = (size_t) min((spec->precision > 0 ? spec->precision : PRECISION_DEFAULT), PRECISION_MAX);
   size_t n = 0;
 
   // write sign or space to buffer
@@ -163,7 +169,13 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
     return n;
   } else if (v.exp == 0 && v.frac == 0) {
     // zero
-    n += fmtlib_buffer_write(buffer, "0", 1);
+    n += fmtlib_buffer_write_char(buffer, '0');
+    if (!(spec->flags & FMT_FLAG_ALT)) {
+      n += fmtlib_buffer_write_char(buffer, '.');
+      for (size_t i = 0; i < prec; i++) {
+        n += fmtlib_buffer_write_char(buffer, '0');
+      }
+    }
     return n;
   }
 
@@ -174,9 +186,6 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
   // now to convert floating point numbers to strings we need to extract the whole
   // and fractional parts as integers. from there we simply convert each to a string
   // then write them to the buffer.
-
-  // using a precision over 9 can lead to overflow errors
-  int prec = spec->precision > 0 ? min(spec->precision, 9) : 6;
   uint64_t whole = (uint64_t) v.value;
   uint64_t frac;
 
@@ -200,22 +209,24 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
     frac++;
   }
 
+  // the only time we _dont_ want to write the decimal point and fraction is
+  // when the fraction is zero while the ALT flag is set.
+  bool write_decimal = !(frac == 0 && (spec->flags & FMT_FLAG_ALT));
+
   // write the whole part to the intermediate buffer
   char temp[TEMP_BUFFER_SIZE];
   size_t len = u64_to_str(whole, temp, &decimal_format);
-  temp[len++] = '.';
-  // write the fractional part to the intermediate buffer
-  size_t frac_len = u64_to_str(frac, temp + len, &decimal_format);
-  len += frac_len;
-  if ((size_t)spec->precision > frac_len) {
-    // we have to factor precision padding into the length but we can't write it
-    // to the buffer until after we've written the number.
-    len += spec->precision - frac_len;
+  size_t frac_len = 0;
+  if (write_decimal) {
+    temp[len++] = '.';
+    // write the fractional part to the intermediate buffer
+    frac_len = u64_to_str(frac, temp + len, &decimal_format);
+    len += frac_len;
   }
 
   // left-pad number with zeros to reach specified width
-  if (spec->flags & FMT_FLAG_ZERO && (size_t)width > len + n) {
-    if ((size_t)width > len + n) {
+  if (spec->flags & FMT_FLAG_ZERO && width > len + n) {
+    if (width > len + n) {
       size_t padding = width - len - n;
       for (size_t i = 0; i < padding; i++) {
         n += fmtlib_buffer_write_char(buffer, '0');
@@ -227,8 +238,8 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
   n += fmtlib_buffer_write(buffer, temp, len);
 
   // finally write the trailing zeros to the buffer
-  if ((size_t)spec->precision > frac_len) {
-    size_t padding = spec->precision - frac_len;
+  if (write_decimal && prec > frac_len) {
+    size_t padding = prec - frac_len;
     for (size_t i = 0; i < padding; i++) {
       n += fmtlib_buffer_write_char(buffer, '0');
     }
