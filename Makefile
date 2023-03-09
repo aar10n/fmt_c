@@ -5,7 +5,7 @@ LDFLAGS :=
 
 LIB_SRCS := fmt.c fmtlib.c
 LIB_OBJS := $(LIB_SRCS:.c=.o)
-LIB_CFLAGS := $(CFLAGS) -Ofast -ffreestanding -fno-omit-frame-pointer -Wno-gnu-statement-expression
+LIB_CFLAGS := $(CFLAGS) -Ofast -ffreestanding -fPIC -fno-omit-frame-pointer -Wno-gnu-statement-expression
 LIB_LDFLAGS := $(LDFLAGS) -nostdlib -nostdinc
 
 TEST_SRCS := test.c
