@@ -274,7 +274,7 @@ static inline size_t parse_printf_spec(const char *format, int max_args, int *ar
 
   int index;
   int flags;
-  int width;
+  int width = 0;
   int precision = 0;
   fmt_align_t align = FMT_ALIGN_LEFT;
   char fill_char = ' ';
