@@ -269,7 +269,7 @@ static inline size_t parse_printf_spec(const char *format, int max_args, int *ar
 
   // %[flags][width][.precision]type
   // ^ format
-  const char *end;
+  const char *end = format;
   const char *ptr = format + 1;
 
   int index;
@@ -326,6 +326,8 @@ parse_flags:
 
   // ====== type ======
   if (!fmtlib_parse_printf_type(ptr, &end)) {
+    ptr++;
+    end = ptr;
     goto early_exit;
   }
 
@@ -352,7 +354,7 @@ parse_flags:
 early_exit:
   // something went wrong, bail out
   spec->valid = false;
-  return format - ptr + 1;
+  return end - format;
 #undef CHECK_EOF
 #undef CHECK_MAX_ARGS
 }

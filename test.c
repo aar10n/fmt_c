@@ -111,6 +111,7 @@ int main(int argc, char **argv) {
   fmt_test_case("3.14", "%.2f", 3.14);
   fmt_test_case("FFFFFFFFFFFFFFFF", "%llX", UINT64_MAX);
   fmt_test_case("1, hi, f", "%d, %s, %x", 1, "hi", 15);
+  fmt_test_case("->  <-", "-> %J <-", 1);
 
   return 0;
 }
