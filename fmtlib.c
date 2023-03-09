@@ -435,6 +435,35 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
       default:
         break;
     }
+  } else if (spec->type_len == 2) {
+    if (spec->type[0] == 'z') {
+      if (spec->type[1] == 'd') {
+        spec->argtype = FMT_ARGTYPE_SIZE;
+        spec->formatter = fmtlib_format_signed;
+        return 1;
+      } else if (spec->type[1] == 'u') {
+        spec->argtype = FMT_ARGTYPE_SIZE;
+        spec->formatter = fmtlib_format_unsigned;
+        return 1;
+      } else if (spec->type[1] == 'b') {
+        spec->argtype = FMT_ARGTYPE_SIZE;
+        spec->formatter = fmtlib_format_binary;
+        return 1;
+      } else if (spec->type[1] == 'o') {
+        spec->argtype = FMT_ARGTYPE_SIZE;
+        spec->formatter = fmtlib_format_octal;
+        return 1;
+      } else if (spec->type[1] == 'X') {
+        spec->flags |= FMT_FLAG_UPPER;
+        spec->argtype = FMT_ARGTYPE_SIZE;
+        spec->formatter = fmtlib_format_hex;
+        return 1;
+      } else if (spec->type[1] == 'x') {
+        spec->argtype = FMT_ARGTYPE_SIZE;
+        spec->formatter = fmtlib_format_hex;
+        return 1;
+      }
+    }
   } else if (spec->type_len == 3) {
     if (strncmp(type, "lld", 3) == 0) {
       spec->argtype = FMT_ARGTYPE_INT32;
@@ -502,6 +531,13 @@ size_t fmtlib_parse_printf_type(const char *format, const char **end) {
           *end = ptr + 3;
           return 3;
         }
+      }
+      break;
+    case 'z':
+      if (ptr[1] == 'd' || ptr[1] == 'u' || ptr[1] == 'b' ||
+          ptr[1] == 'o' || ptr[1] == 'x' || ptr[1] == 'X') {
+        *end = ptr + 2;
+        return 2;
       }
       break;
   }

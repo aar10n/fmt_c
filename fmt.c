@@ -491,6 +491,7 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
           case FMT_ARGTYPE_UINT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, uint32_t)); break;
           case FMT_ARGTYPE_UINT64: values[i] = fmt_rawvalue_uint64(va_arg(args_copy, uint64_t)); break;
           case FMT_ARGTYPE_DOUBLE: values[i] = fmt_rawvalue_double(va_arg(args_copy, double)); break;
+          case FMT_ARGTYPE_SIZE: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, size_t)); break;
           case FMT_ARGTYPE_VOIDPTR: values[i] = fmt_rawvalue_voidptr(va_arg(args_copy, void*)); break;
         }
         loaded_arg_count++;
@@ -536,6 +537,7 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       case FMT_ARGTYPE_UINT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, uint32_t)); break;
       case FMT_ARGTYPE_UINT64: values[i] = fmt_rawvalue_uint64(va_arg(args_copy, uint64_t)); break;
       case FMT_ARGTYPE_DOUBLE: values[i] = fmt_rawvalue_double(va_arg(args_copy, double)); break;
+      case FMT_ARGTYPE_SIZE: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, size_t)); break;
       case FMT_ARGTYPE_VOIDPTR: values[i] = fmt_rawvalue_voidptr(va_arg(args_copy, void*)); break;
     }
     loaded_arg_count++;

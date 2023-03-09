@@ -51,6 +51,7 @@ typedef enum fmt_argtype {
   FMT_ARGTYPE_UINT32,
   FMT_ARGTYPE_UINT64,
   FMT_ARGTYPE_DOUBLE,
+  FMT_ARGTYPE_SIZE,
   FMT_ARGTYPE_VOIDPTR,
 } fmt_argtype_t;
 

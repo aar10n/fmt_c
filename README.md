@@ -71,12 +71,15 @@ type
     formatting is applied.
     The following built-in types are supported:
 
-         ** 'll' specifies a 64-bit argument, default is 32-bit **
-        '[ll]d'         - signed decimal number
-        '[ll]u'         - unsigned decimal number
-        '[ll]b'         - unsigned binary number
-        '[ll]o'         - unsigned octal number
-        '[ll]x'         - unsigned hexadecimal number
+        '[<type>]d'   - signed decimal integer
+        '[<type>]u'   - unsigned decimal integer
+        '[<type>]b'   - unsigned binary integer
+        '[<type>]o'   - unsigned octal integer
+        '[<type>]x'   - unsigned hexadecimal integer
+        where <type> is one of the following:
+          'll' - 64-bit integer
+          'z'  - size_t
+        or a 32-bit integer if no type is specified
 
         'f'             - floating point number (double)
         'F'             - floating point number capitalized
