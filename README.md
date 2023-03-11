@@ -13,6 +13,10 @@ The overall syntax of a format specifier is:
 
     {[index]:[[$fill]align][flags][width][.precision][type]}
 
+Printf style specifiers are supported as well:
+
+    %[flags][width][.precision]type
+
 index
     The index field is an optional positive integer that specifies the index of
     the argument to use for the value. Implicitly assigned indices begin at the
@@ -110,40 +114,39 @@ I would never claim this to be the fastest string formatting library, and perfor
 isn't a primary concern. However, the test suite also benchmarks the library to make
 sure there isn't any obvious slowdowns.
 
-Apple M1 Pro 10C 32GB
+M1 Macbook Pro 10C 32GB
 ```
-[PASS] "Hello, world!" in 171 ns
-[PASS] "Hello, world!" in 139 ns
-[PASS] "42" in 145 ns
-[PASS] "2a" in 142 ns
-[PASS] "3.14" in 169 ns
-[PASS] "3.14, 42" in 195 ns
-[PASS] "42, 3.14" in 214 ns
-[PASS] "3.14, string, 42" in 224 ns
-[PASS] "0x2a" in 146 ns
-[PASS] "2A" in 138 ns
-[PASS] "007" in 154 ns
-[PASS] "-007" in 154 ns
-[PASS] "+007" in 153 ns
-[PASS] "1   " in 142 ns
-[PASS] "   1" in 151 ns
-[PASS] " 42" in 133 ns
-[PASS] "-42" in 131 ns
-[PASS] "3" in 143 ns
-[PASS] "3.1" in 152 ns
-[PASS] "42  " in 132 ns
-[PASS] " 42 " in 156 ns
-[PASS] "  42" in 150 ns
-[PASS] "===== hello =====" in 161 ns
-[PASS] "............101" in 173 ns
+[PASS] "Hello, world!" in 186 ns
+[PASS] "Hello, world!" in 158 ns
+[PASS] "42" in 163 ns
+[PASS] "2a" in 159 ns
+[PASS] "3.14" in 156 ns
+[PASS] "3.14, 42" in 177 ns
+[PASS] "42, 3.14" in 185 ns
+[PASS] "3.14, string, 42" in 233 ns
+[PASS] "0x2a" in 144 ns
+[PASS] "2A" in 143 ns
+[PASS] "007" in 136 ns
+[PASS] "-007" in 143 ns
+[PASS] "+007" in 143 ns
+[PASS] "1   " in 143 ns
+[PASS] "   1" in 140 ns
+[PASS] " 42" in 131 ns
+[PASS] "-42" in 128 ns
+[PASS] "3" in 127 ns
+[PASS] "3.1" in 132 ns
+[PASS] "42  " in 140 ns
+[PASS] " 42 " in 144 ns
+[PASS] "  42" in 137 ns
+[PASS] "===== hello =====" in 153 ns
+[PASS] "............101" in 169 ns
 [PASS] "101............" in 176 ns
-[PASS] "3.14" in 149 ns
-[PASS] "3.141592653" in 165 ns
-[PASS] "3.141592654" in 157 ns
-[PASS] "3.141592654" in 170 ns
-[PASS] "0.1234" in 135 ns
-[PASS] "0.1234" in 147 ns
-[PASS] "{42, 3}" in 259 ns
-[PASS] "1, hi, f" in 175 ns
+[PASS] "          " in 147 ns
+[PASS] "42" in 122 ns
+[PASS] "2a" in 121 ns
+[PASS] "3.14" in 141 ns
+[PASS] "FFFFFFFFFFFFFFFF" in 164 ns
+[PASS] "1, hi, f" in 160 ns
+[PASS] "->  <-" in 117 ns
 ```
 See `test.c` for the full test suite.

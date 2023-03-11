@@ -1,7 +1,7 @@
-/*
- * Copyright
- *
- */
+//
+// Copyright (c) Aaron Gill-Braun. All rights reserved.
+// Distributed under the terms of the MIT License. See LICENSE for details.
+//
 
 #ifndef LIB_FMT_FMT_H
 #define LIB_FMT_FMT_H
@@ -38,6 +38,10 @@
  * The overall syntax of a format specifier is:
  *
  *     {[index]:[[$fill]align][flags][width][.precision][type]}
+ *
+ * Printf style specifiers are supported as well:
+ *
+ *     %[flags][width][.precision]type
  *
  * index
  *     The index field is an optional positive integer that specifies the index of
@@ -136,10 +140,6 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
 /**
  * Writes a formatted string to the given fmt_buffer.
- *
- * This is intended for use when implementing a custom formatter as a means
- * to write formatted output to the buffer. You may still use the fmtlib_buffer_
- * functions to write to the buffer directly.
  *
  * @param buffer the buffer to write to
  * @param format the format string

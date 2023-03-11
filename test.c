@@ -52,25 +52,8 @@ static void fmt_test_case(const char *expected, const char *format, ...) __attri
   printf(GREEN"[PASS]"RESET" \"%s\" in %llu ns\n", expected, ns_avg);
 }
 
-
-// custom formatter
-
-struct my_struct {
-  int a;
-  int b;
-};
-
-const fmt_argtype_t my_argtype = FMT_ARGTYPE_VOIDPTR; // take by reference
-
-static size_t my_formatter(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  struct my_struct *s = spec->value.voidptr_value;
-  return fmt_write(buffer, "{{{:d}, {:d}}}", s->a, s->b);
-}
-
 int main(int argc, char **argv) {
   mach_timebase_info(&info);
-
-  fmtlib_register_type("test", my_formatter, my_argtype);
 
   // basic
   fmt_test_case("Hello, world!", "Hello, world!");
@@ -104,6 +87,7 @@ int main(int argc, char **argv) {
   fmt_test_case("===== hello =====", "{:$=^17s}", " hello ");
   fmt_test_case("............101", "{:$.>*b}", 5, 15);
   fmt_test_case("101............", "{1:$.<*0b}", 15, 5);
+  fmt_test_case("          ", "{:10}"); // zero-arg fill
 
   // printf
   fmt_test_case("42", "%d", 42);
@@ -111,7 +95,7 @@ int main(int argc, char **argv) {
   fmt_test_case("3.14", "%.2f", 3.14);
   fmt_test_case("FFFFFFFFFFFFFFFF", "%llX", UINT64_MAX);
   fmt_test_case("1, hi, f", "%d, %s, %x", 1, "hi", 15);
-  fmt_test_case("->  <-", "-> %J <-", 1);
+  fmt_test_case("->  <-", "-> %J <-", 1); // unknown format specifier
 
   return 0;
 }

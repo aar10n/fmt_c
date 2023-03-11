@@ -1,5 +1,6 @@
 //
-// Created by Aaron Gill-Braun on 2023-02-25.
+// Copyright (c) Aaron Gill-Braun. All rights reserved.
+// Distributed under the terms of the MIT License. See LICENSE for details.
 //
 
 #include "fmt.h"
@@ -320,9 +321,9 @@ parse_flags:
     }
   }
 
-  // we have built-in types like "lld" and "x" which implicity encode the length
+  // we have built-in types like "lld" and "zx" which implicity encode the length
   // in a backward compatible-way so we don't need to parse the length specifier
-  // separately
+  // separately.
 
   // ====== type ======
   if (!fmtlib_parse_printf_type(ptr, &end)) {
@@ -488,8 +489,6 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
           case FMT_ARGTYPE_NONE: values[i] = fmt_rawvalue_uint64(0); break;
           case FMT_ARGTYPE_INT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int32_t)); break; // NOLINT(bugprone-branch-clone)
           case FMT_ARGTYPE_INT64: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int64_t)); break;
-          case FMT_ARGTYPE_UINT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, uint32_t)); break;
-          case FMT_ARGTYPE_UINT64: values[i] = fmt_rawvalue_uint64(va_arg(args_copy, uint64_t)); break;
           case FMT_ARGTYPE_DOUBLE: values[i] = fmt_rawvalue_double(va_arg(args_copy, double)); break;
           case FMT_ARGTYPE_SIZE: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, size_t)); break;
           case FMT_ARGTYPE_VOIDPTR: values[i] = fmt_rawvalue_voidptr(va_arg(args_copy, void*)); break;
@@ -534,8 +533,6 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       case FMT_ARGTYPE_NONE: values[i] = fmt_rawvalue_uint64(0); break;
       case FMT_ARGTYPE_INT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int32_t)); break; // NOLINT(bugprone-branch-clone)
       case FMT_ARGTYPE_INT64: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, int64_t)); break;
-      case FMT_ARGTYPE_UINT32: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, uint32_t)); break;
-      case FMT_ARGTYPE_UINT64: values[i] = fmt_rawvalue_uint64(va_arg(args_copy, uint64_t)); break;
       case FMT_ARGTYPE_DOUBLE: values[i] = fmt_rawvalue_double(va_arg(args_copy, double)); break;
       case FMT_ARGTYPE_SIZE: values[i] = fmt_rawvalue_uint64((uint64_t)va_arg(args_copy, size_t)); break;
       case FMT_ARGTYPE_VOIDPTR: values[i] = fmt_rawvalue_voidptr(va_arg(args_copy, void*)); break;

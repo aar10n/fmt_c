@@ -1,5 +1,6 @@
 //
-// Created by Aaron Gill-Braun on 2023-02-25.
+// Copyright (c) Aaron Gill-Braun. All rights reserved.
+// Distributed under the terms of the MIT License. See LICENSE for details.
 //
 
 #include "fmtlib.h"
@@ -43,10 +44,6 @@ static const struct num_format hex_lower_format = { .base = 16, .digits = "01234
 static const struct num_format hex_upper_format = { .base = 16, .digits = "0123456789ABCDEF", .prefix = "0X" };
 
 static const double pow10[] = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 };
-
-static fmt_format_type_t format_types[FMTLIB_MAX_TYPES];
-static size_t num_format_types = 0;
-
 
 static inline size_t u64_to_str(uint64_t value, char *buffer, const struct num_format *format) {
   size_t n = 0;
@@ -136,6 +133,30 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
   // finally write the number to the buffer
   n += fmtlib_buffer_write(buffer, temp, len);
   return n;
+}
+
+static size_t format_signed(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  return format_integer(buffer, spec, true, &decimal_format);
+}
+
+static size_t format_unsigned(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  return format_integer(buffer, spec, false, &decimal_format);
+}
+
+static size_t format_binary(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  return format_integer(buffer, spec, false, &binary_format);
+}
+
+static size_t format_octal(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  return format_integer(buffer, spec, false, &octal_format);
+}
+
+static size_t format_hex(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  if (spec->flags & FMT_FLAG_UPPER) {
+    return format_integer(buffer, spec, false, &hex_upper_format);
+  } else {
+    return format_integer(buffer, spec, false, &hex_lower_format);
+  }
 }
 
 // Writes a floating point number to the buffer.
@@ -247,6 +268,30 @@ static inline size_t format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec)
   return n;
 }
 
+static size_t format_string(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  const char *str = spec->value.voidptr_value;
+  size_t len = spec->precision;
+  if (str == NULL) {
+    str = "(null)";
+    len = 6;
+  } else if (len == 0) {
+    len = strlen(str);
+  }
+
+  return fmtlib_buffer_write(buffer, str, len);
+}
+
+static size_t format_char(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  char c = *((char *)&spec->value);
+  const char *str = &c;
+  size_t len = 1;
+  if (c == 0) {
+    str = "\\0";
+    len = 2;
+  }
+  return fmtlib_buffer_write(buffer, str, len);
+}
+
 // aligns the string to the spec width
 static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spec, const char *str, size_t len) {
   if (len > (size_t)spec->width) {
@@ -282,224 +327,60 @@ static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spe
   return n;
 }
 
+static inline size_t resolve_integral_type(fmt_spec_t *spec) {
+  size_t n = 0;
+  fmt_argtype_t argtype;
+  fmt_formatter_t formatter = NULL;
+  int flags = spec->flags;
+  const char *ptr = spec->type;
 
-// MARK: - Public API
-
-size_t fmtlib_format_signed(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
-
-  size_t len = format_integer(&value, spec, true, &decimal_format);
-  return apply_alignment(buffer, spec, value_data, len);
-}
-
-size_t fmtlib_format_unsigned(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
-
-  size_t len = format_integer(&value, spec, false, &decimal_format);
-  return apply_alignment(buffer, spec, value_data, len);
-}
-
-size_t fmtlib_format_binary(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
-
-  size_t len = format_integer(&value, spec, false, &binary_format);
-  return apply_alignment(buffer, spec, value_data, len);
-}
-
-size_t fmtlib_format_octal(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
-
-  size_t len = format_integer(&value, spec, false, &octal_format);
-  return apply_alignment(buffer, spec, value_data, len);
-}
-
-size_t fmtlib_format_hex(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  const struct num_format *format = spec->flags & FMT_FLAG_UPPER ? &hex_upper_format : &hex_lower_format;
-  char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
-
-  size_t len = format_integer(&value, spec, false, format);
-  return apply_alignment(buffer, spec, value_data, len);
-}
-
-size_t fmtlib_format_double(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  char value_data[TEMP_BUFFER_SIZE];
-  fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
-
-  size_t len = format_double(&value, spec);
-  return apply_alignment(buffer, spec, value_data, len);
-}
-
-size_t fmtlib_format_string(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  const char *str = spec->value.voidptr_value;
-  size_t len = spec->precision;
-  if (str == NULL) {
-    str = "(null)";
-    len = 6;
-  } else if (len == 0) {
-    len = strlen(str);
+  if (ptr[n] == 'l' && ptr[n+1] == 'l') {
+    argtype = FMT_ARGTYPE_INT64;
+    n += 2;
+  } else if (ptr[n] == 'z') {
+    argtype = FMT_ARGTYPE_SIZE;
+    n += 1;
+  } else {
+    argtype = FMT_ARGTYPE_INT32;
   }
 
-  if (spec->width == 0) {
-    return fmtlib_buffer_write(buffer, str, len);
+  switch (ptr[n]) {
+    case 'd': formatter = format_signed; break;
+    case 'u': formatter = format_unsigned; break;
+    case 'b': formatter = format_binary; break;
+    case 'o': formatter = format_octal; break;
+    case 'X': flags |= FMT_FLAG_UPPER; // fallthrough
+    case 'x': formatter = format_hex; break;
+    default:
+      return 0; // unknown type
   }
 
-  // width specified, align the string
-  return apply_alignment(buffer, spec, str, len);
+  spec->flags = flags;
+  spec->argtype = argtype;
+  spec->formatter = formatter;
+  return 1;
 }
 
-size_t fmtlib_format_char(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
-  char c = *((char *)&spec->value);
-  const char *str = &c;
-  size_t len = 1;
-  if (c == 0) {
-    str = "\\0";
-    len = 2;
-  }
-
-  if (spec->width == 0) {
-    return fmtlib_buffer_write(buffer, str, len);
-  }
-
-  // width specified, align the char
-  return apply_alignment(buffer, spec, str, len);
-}
-
-//
-
-void fmtlib_register_type(const char *type, fmt_formatter_t fn, fmt_argtype_t argtype) {
-  if (num_format_types >= FMTLIB_MAX_TYPES) {
-    return;
-  }
-
-  format_types[num_format_types].type = type;
-  format_types[num_format_types].fn = fn;
-  format_types[num_format_types].argtype = argtype;
-  num_format_types++;
-}
+// MARK: Public API
 
 int fmtlib_resolve_type(fmt_spec_t *spec) {
-  const char *type = spec->type;
   if (spec->type_len == 0) {
     spec->argtype = FMT_ARGTYPE_NONE;
     spec->formatter = NULL;
     return 1;
-  } else if (spec->type_len == 1) {
-    switch (spec->type[0]) {
-      case 'd':
-        spec->argtype = FMT_ARGTYPE_INT32;
-        spec->formatter = fmtlib_format_signed;
-        return 1;
-      case 'u':
-        spec->argtype = FMT_ARGTYPE_UINT32;
-        spec->formatter = fmtlib_format_unsigned;
-        return 1;
-      case 'b':
-        spec->argtype = FMT_ARGTYPE_UINT32;
-        spec->formatter = fmtlib_format_binary;
-        return 1;
-      case 'o':
-        spec->argtype = FMT_ARGTYPE_UINT32;
-        spec->formatter = fmtlib_format_octal;
-        return 1;
-      case 'X':
-        spec->flags |= FMT_FLAG_UPPER;
-        // fallthrough
-      case 'x':
-        spec->argtype = FMT_ARGTYPE_UINT32;
-        spec->formatter = fmtlib_format_hex;
-        return 1;
-      case 'F':
-        spec->flags |= FMT_FLAG_UPPER;
-        // fallthrough
-      case 'f':
-        spec->argtype = FMT_ARGTYPE_DOUBLE;
-        spec->formatter = fmtlib_format_double;
-        return 1;
-      case 's':
-        spec->argtype = FMT_ARGTYPE_VOIDPTR;
-        spec->formatter = fmtlib_format_string;
-        return 1;
-      case 'c':
-        spec->argtype = FMT_ARGTYPE_INT32;
-        spec->formatter = fmtlib_format_char;
-      case 'p':
-        spec->flags |= FMT_FLAG_ALT;
-        spec->argtype = FMT_ARGTYPE_VOIDPTR;
-        spec->formatter = fmtlib_format_hex;
-        return 1;
-      default:
-        break;
-    }
-  } else if (spec->type_len == 2) {
-    if (spec->type[0] == 'z') {
-      if (spec->type[1] == 'd') {
-        spec->argtype = FMT_ARGTYPE_SIZE;
-        spec->formatter = fmtlib_format_signed;
-        return 1;
-      } else if (spec->type[1] == 'u') {
-        spec->argtype = FMT_ARGTYPE_SIZE;
-        spec->formatter = fmtlib_format_unsigned;
-        return 1;
-      } else if (spec->type[1] == 'b') {
-        spec->argtype = FMT_ARGTYPE_SIZE;
-        spec->formatter = fmtlib_format_binary;
-        return 1;
-      } else if (spec->type[1] == 'o') {
-        spec->argtype = FMT_ARGTYPE_SIZE;
-        spec->formatter = fmtlib_format_octal;
-        return 1;
-      } else if (spec->type[1] == 'X') {
-        spec->flags |= FMT_FLAG_UPPER;
-        spec->argtype = FMT_ARGTYPE_SIZE;
-        spec->formatter = fmtlib_format_hex;
-        return 1;
-      } else if (spec->type[1] == 'x') {
-        spec->argtype = FMT_ARGTYPE_SIZE;
-        spec->formatter = fmtlib_format_hex;
-        return 1;
-      }
-    }
-  } else if (spec->type_len == 3) {
-    if (strncmp(type, "lld", 3) == 0) {
-      spec->argtype = FMT_ARGTYPE_INT32;
-      spec->formatter = fmtlib_format_signed;
-      return 1;
-    } else if (strncmp(type, "llu", 3) == 0) {
-      spec->argtype = FMT_ARGTYPE_UINT64;
-      spec->formatter = fmtlib_format_unsigned;
-      return 1;
-    } else if (strncmp(type, "llb", 3) == 0) {
-      spec->argtype = FMT_ARGTYPE_UINT64;
-      spec->formatter = fmtlib_format_binary;
-      return 1;
-    } else if (strncmp(type, "llo", 3) == 0) {
-      spec->argtype = FMT_ARGTYPE_UINT64;
-      spec->formatter = fmtlib_format_octal;
-      return 1;
-    } else if (strncmp(type, "llX", 3) == 0) {
-      spec->flags |= FMT_FLAG_UPPER;
-      spec->argtype = FMT_ARGTYPE_UINT64;
-      spec->formatter = fmtlib_format_hex;
-      return 1;
-    } else if (strncmp(type, "llx", 3) == 0) {
-      spec->argtype = FMT_ARGTYPE_UINT64;
-      spec->formatter = fmtlib_format_hex;
-      return 1;
-    }
   }
 
-  // TODO: maybe use something faster here?
-  for (size_t i = 0; i < num_format_types; i++) {
-    if (strcmp(format_types[i].type, type) == 0) {
-      spec->argtype = format_types[i].argtype;
-      spec->formatter = format_types[i].fn;
-      return 1;
-    }
+  if (resolve_integral_type(spec)) {
+    return 1;
+  }
+
+  switch (spec->type[0]) {
+    case 'F': spec->flags |= FMT_FLAG_UPPER; // fallthrough
+    case 'f': spec->argtype = FMT_ARGTYPE_DOUBLE; spec->formatter = format_double; return 1;
+    case 's': spec->argtype = FMT_ARGTYPE_VOIDPTR; spec->formatter = format_string; return 1;
+    case 'c': spec->argtype = FMT_ARGTYPE_INT32; spec->formatter = format_char; return 1;
+    case 'p': spec->flags |= FMT_FLAG_ALT;
+              spec->argtype = FMT_ARGTYPE_VOIDPTR; spec->formatter = format_hex; return 1;
   }
 
   // type not found
@@ -542,15 +423,6 @@ size_t fmtlib_parse_printf_type(const char *format, const char **end) {
       break;
   }
 
-  // check user types, but only check ones that are a single character
-  for (size_t i = 0; i < num_format_types; i++) {
-    size_t type_len = strlen(format_types[i].type);
-    if (type_len == 1 && format_types[i].type[0] == *ptr) {
-      *end = ptr + 1;
-      return 1;
-    }
-  }
-
   *end = format;
   return 0;
 }
@@ -563,5 +435,16 @@ size_t fmtlib_format_spec(fmt_buffer_t *buffer, fmt_spec_t *spec) {
     return 0;
   }
 
+  // if width is specified, we need to format the value into a temporary buffer
+  // and then apply alignment/padding. otherwise we can just format directly
+  // into the output buffer. this means that format strings specifying a width
+  // are limited to FMTLIB_MAX_WIDTH characters.
+  if (spec->width > 0) {
+    char value_data[TEMP_BUFFER_SIZE];
+    fmt_buffer_t value = fmtlib_buffer(value_data, TEMP_BUFFER_SIZE);
+
+    size_t n = spec->formatter(&value, spec);
+    return apply_alignment(buffer, spec, value_data, n);
+  }
   return spec->formatter(buffer, spec);
 }

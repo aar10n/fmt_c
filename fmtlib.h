@@ -1,5 +1,6 @@
 //
-// Created by Aaron Gill-Braun on 2023-02-25.
+// Copyright (c) Aaron Gill-Braun. All rights reserved.
+// Distributed under the terms of the MIT License. See LICENSE for details.
 //
 
 #ifndef LIB_FMT_FMTLIB_H
@@ -11,21 +12,8 @@
 #include <stdarg.h>
 #include <string.h>
 
-// Custom Specifier Types
-// ==========================
-// fmtlib provides a way to add support for new specifier types at runtime
-// by registering formatter functions. To add a new type, simply call the
-// `fmt_register_type` function with your unique type name, the type of the
-// argument for your specifier, and a function which will format the value.
-//
-// The formatter function should use the fmt_write and fmtlib_buffer_ functions
-// to write to the buffer, and should return the number of bytes written.
-
 // determines the maximum width that can be specified
 #define FMTLIB_MAX_WIDTH 256
-
-// determines the maximum number of user defined specifier types that can be registered
-#define FMTLIB_MAX_TYPES 128
 
 // determines the maximum allowed length of a specifier type name.
 #define FMTLIB_MAX_TYPE_LEN 16
@@ -48,8 +36,6 @@ typedef enum fmt_argtype {
   FMT_ARGTYPE_NONE,
   FMT_ARGTYPE_INT32,
   FMT_ARGTYPE_INT64,
-  FMT_ARGTYPE_UINT32,
-  FMT_ARGTYPE_UINT64,
   FMT_ARGTYPE_DOUBLE,
   FMT_ARGTYPE_SIZE,
   FMT_ARGTYPE_VOIDPTR,
@@ -132,17 +118,8 @@ static inline size_t fmtlib_buffer_write_char(fmt_buffer_t *b, char c) {
 // -----------------------------------------------------------------------------
 
 /**
- * Registers a new format specifier type.
- *
- * @param type The type name
- * @param fn The function which formats this type
- * @param argtype The type of argument this formatter expects (as taken from the va_list)
- */
-void fmtlib_register_type(const char *type, fmt_formatter_t fn, fmt_argtype_t argtype);
-
-/**
  * Resolves the specifier type to a formatter function and argument type.
- * If the format type exists, spec->formatter and spec->argtypee will be set
+ * If the format type exists, spec->formatter and spec->argtype will be set
  * and the function will return 1, otherwise 0 will be returned.
  *
  * @param type The type name
@@ -153,6 +130,10 @@ int fmtlib_resolve_type(fmt_spec_t *spec);
 
 /**
  * Parses a type within a printf-style specifier.
+ *
+ *  %x
+ *   ^- format
+ *
  * @param format A pointer to the start of the type.
  * @param [out] end A pointer to a const char* which will be set to the end of the type.
  * @return The length of the type or 0 if the type is not valid.
@@ -160,10 +141,10 @@ int fmtlib_resolve_type(fmt_spec_t *spec);
 size_t fmtlib_parse_printf_type(const char *format, const char **end);
 
 /**
- * Formats a string according to the given format specifier.
+ * Formats a value according to the given specifier.
  *
- * @param buffer the buffer to write the formatted to
- * @param spec the format specifier
+ * @param buffer the buffer to write the formatted value to
+ * @param spec the specifier
  * @return the number of bytes written
  */
 size_t fmtlib_format_spec(fmt_buffer_t *buffer, fmt_spec_t *spec);
