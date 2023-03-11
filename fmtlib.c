@@ -7,6 +7,7 @@
 #include "fmt.h"
 
 #include <string.h>
+#include <path.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -320,6 +321,19 @@ static size_t format_mem_quantity(fmt_buffer_t *buffer, const fmt_spec_t *spec) 
   return n;
 }
 
+static size_t format_path(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  const path_t *path = spec->value.voidptr_value;
+  if (path == NULL) {
+    return fmtlib_buffer_write(buffer, "(null)", 6);
+  }
+
+  size_t n = path_copy(buffer->data, buffer->size, *path);
+  buffer->data += n;
+  buffer->size -= n;
+  buffer->written += n;
+  return n;
+}
+
 // aligns the string to the spec width
 static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spec, const char *str, size_t len) {
   if (len > (size_t)spec->width) {
@@ -399,6 +413,12 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
   }
 
   if (resolve_integral_type(spec)) {
+    return 1;
+  }
+
+  if (spec->type_len == 4 && strncmp("path", spec->type, 4) == 0) {
+    spec->argtype = FMT_ARGTYPE_VOIDPTR;
+    spec->formatter = format_path;
     return 1;
   }
 
