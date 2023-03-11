@@ -119,6 +119,8 @@
  *         'c'             - character
  *         'p'             - pointer
  *
+ *         'M'             - memory quantity
+ *
  * Notes:
  *
  *   - The maximum number of arguments supported by the fmt funcions is defined by the

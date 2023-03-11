@@ -292,6 +292,34 @@ static size_t format_char(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   return fmtlib_buffer_write(buffer, str, len);
 }
 
+static size_t format_mem_quantity(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  static const char *suffix_lower[] = {"", "k", "m", "g", "t", "p", "e", "z", "y"};
+  static const char *suffix_upper[] = {"", "K", "M", "G", "T", "P", "E", "Z", "Y"};
+  static const char *suffix_lower_alt[] = {"b", "ki", "mi", "gi", "ti", "pi", "ei", "zi", "yi"};
+  static const char *suffix_upper_alt[] = {"B", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi"};
+  static size_t num_suffixes = sizeof(suffix_lower) / sizeof(suffix_lower[0]);
+
+  uint64_t value = spec->value.uint64_value;
+  const char **suffixes;
+  if (spec->flags & FMT_FLAG_ALT) {
+    suffixes = (spec->flags & FMT_FLAG_UPPER) ? suffix_upper_alt : suffix_lower_alt;
+  } else {
+    suffixes = (spec->flags & FMT_FLAG_UPPER) ? suffix_upper : suffix_lower;
+  }
+
+  size_t suffix_index = 0;
+  while (value >= 1024 && suffix_index < num_suffixes - 1) {
+    value /= 1024;
+    suffix_index++;
+  }
+
+  char temp[TEMP_BUFFER_SIZE];
+  size_t len = u64_to_str(value, temp, &decimal_format);
+  size_t n = fmtlib_buffer_write(buffer, temp, len);
+  n += fmtlib_buffer_write(buffer, suffixes[suffix_index], strlen(suffixes[suffix_index]));
+  return n;
+}
+
 // aligns the string to the spec width
 static inline size_t apply_alignment(fmt_buffer_t *buffer, const fmt_spec_t *spec, const char *str, size_t len) {
   if (len > (size_t)spec->width) {
@@ -381,6 +409,8 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
     case 'c': spec->argtype = FMT_ARGTYPE_INT32; spec->formatter = format_char; return 1;
     case 'p': spec->flags |= FMT_FLAG_ALT;
               spec->argtype = FMT_ARGTYPE_VOIDPTR; spec->formatter = format_hex; return 1;
+    case 'M': spec->flags |= FMT_FLAG_UPPER; // fallthrough
+              spec->argtype = FMT_ARGTYPE_SIZE; spec->formatter = format_mem_quantity; return 1;
   }
 
   // type not found
@@ -403,6 +433,7 @@ size_t fmtlib_parse_printf_type(const char *format, const char **end) {
     case 'o': case 'x': case 'X':
     case 'f': case 'F': case 's':
     case 'c': case 'p':
+    case 'M':
       *end = ptr + 1;
       return 1;
     case 'l':
