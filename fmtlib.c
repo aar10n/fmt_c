@@ -7,7 +7,9 @@
 #include "fmt.h"
 
 #include <string.h>
-#include <path.h>
+#include <str.h>
+#include <errno.h>
+#include <vfs/path.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -321,17 +323,44 @@ static size_t format_mem_quantity(fmt_buffer_t *buffer, const fmt_spec_t *spec) 
   return n;
 }
 
-static size_t format_path(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+static size_t format_errno(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  int err = (int) spec->value.uint64_value;
+  if (err >= 0) {
+    return fmtlib_buffer_write(buffer, "success", 7);
+  }
+
+  const char *str = strerror(abs(err));
+  if (str == NULL) {
+    size_t n = fmtlib_buffer_write(buffer, "{unknown error: ", 16);
+    n += format_signed(buffer, spec);
+    n += fmtlib_buffer_write_char(buffer, '}');
+    return n;
+  }
+  return fmtlib_buffer_write(buffer, str, strlen(str));
+}
+
+static size_t format_path_t(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   const path_t *path = spec->value.voidptr_value;
   if (path == NULL) {
     return fmtlib_buffer_write(buffer, "(null)", 6);
   }
+  return fmtlib_buffer_write(buffer, path_start(*path), path_len(*path));
+}
 
-  size_t n = path_copy(buffer->data, buffer->size, *path);
-  buffer->data += n;
-  buffer->size -= n;
-  buffer->written += n;
-  return n;
+static size_t format_str_t(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  const str_t *str = spec->value.voidptr_value;
+  if (str == NULL) {
+    return fmtlib_buffer_write(buffer, "(null)", 6);
+  }
+  return fmtlib_buffer_write(buffer, str_cptr(*str), str_len(*str));
+}
+
+static size_t format_cstr_t(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
+  const cstr_t *str = spec->value.voidptr_value;
+  if (str == NULL) {
+    return fmtlib_buffer_write(buffer, "(null)", 6);
+  }
+  return fmtlib_buffer_write(buffer, cstr_ptr(*str), cstr_len(*str));
 }
 
 // aligns the string to the spec width
@@ -416,9 +445,28 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
     return 1;
   }
 
-  if (spec->type_len == 4 && strncmp("path", spec->type, 4) == 0) {
+  // err -> int
+  if (strncmp("err", spec->type, 3) == 0) {
+    spec->argtype = FMT_ARGTYPE_INT32;
+    spec->formatter = format_errno;
+    return 1;
+  }
+  // str -> str_t*
+  if (strncmp("str", spec->type, 3) == 0) {
     spec->argtype = FMT_ARGTYPE_VOIDPTR;
-    spec->formatter = format_path;
+    spec->formatter = format_str_t;
+    return 1;
+  }
+  // cstr -> cstr_t*
+  if (strncmp("cstr", spec->type, 4) == 0) {
+    spec->argtype = FMT_ARGTYPE_VOIDPTR;
+    spec->formatter = format_str_t;
+    return 1;
+  }
+  // path -> path_t*
+  if (strncmp("path", spec->type, 4) == 0) {
+    spec->argtype = FMT_ARGTYPE_VOIDPTR;
+    spec->formatter = format_path_t;
     return 1;
   }
 

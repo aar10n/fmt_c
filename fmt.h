@@ -121,6 +121,11 @@
  *
  *         'M'             - memory quantity
  *
+ *         'err'           - error code as string
+ *         'str'           - pointer to str_t
+ *         'cstr'          - pointer to cstr_t
+ *         'path'          - pointer to path_t
+ *
  * Notes:
  *
  *   - The maximum number of arguments supported by the fmt funcions is defined by the
