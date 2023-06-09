@@ -445,6 +445,10 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
     return 1;
   }
 
+  if (spec->type_len == 1) {
+    goto single_char;
+  }
+
   // err -> int
   if (strncmp("err", spec->type, 3) == 0) {
     spec->argtype = FMT_ARGTYPE_INT32;
@@ -470,6 +474,7 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
     return 1;
   }
 
+single_char:
   switch (spec->type[0]) {
     case 'F': spec->flags |= FMT_FLAG_UPPER; // fallthrough
     case 'f': spec->argtype = FMT_ARGTYPE_DOUBLE; spec->formatter = format_double; return 1;
