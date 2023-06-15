@@ -464,7 +464,7 @@ int fmtlib_resolve_type(fmt_spec_t *spec) {
   // cstr -> cstr_t*
   if (strncmp("cstr", spec->type, 4) == 0) {
     spec->argtype = FMT_ARGTYPE_VOIDPTR;
-    spec->formatter = format_str_t;
+    spec->formatter = format_cstr_t;
     return 1;
   }
   // path -> path_t*
