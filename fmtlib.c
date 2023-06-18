@@ -6,10 +6,10 @@
 #include "fmtlib.h"
 #include "fmt.h"
 
-#include <string.h>
-#include <str.h>
-#include <errno.h>
-#include <vfs/path.h>
+#include <kernel/string.h>
+#include <kernel/str.h>
+#include <kernel/errno.h>
+#include <kernel/vfs/path.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))

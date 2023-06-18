@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
-#include <string.h>
+#include <kernel/string.h>
 
 // determines the maximum width that can be specified
 #define FMTLIB_MAX_WIDTH 256
