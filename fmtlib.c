@@ -11,8 +11,12 @@
 #include <kernel/errno.h>
 #include <kernel/vfs/path.h>
 
+#ifndef min
 #define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef max
 #define max(a, b) ((a) > (b) ? (a) : (b))
+#endif
 
 // using a precision over 9 can lead to overflow errors
 #define PRECISION_DEFAULT 6
