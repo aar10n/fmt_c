@@ -354,6 +354,8 @@ static size_t format_path_t(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
 static size_t format_str_t(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   const str_t *str = spec->value.voidptr_value;
   if (str == NULL) {
+    return fmtlib_buffer_write(buffer, "(null str_t)", 12);
+  } else if (str_isnull(*str)) {
     return fmtlib_buffer_write(buffer, "(null)", 6);
   }
   return fmtlib_buffer_write(buffer, str_cptr(*str), str_len(*str));
