@@ -475,14 +475,6 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
         continue;
       }
 
-      // =======================
-      // SINGLE-PASS
-      if (spec->argtype == FMT_ARGTYPE_NONE) {
-        // no value
-        n += fmtlib_format_spec(&buf, spec);
-        continue;
-      }
-
       // load argument(s)
       for (int i = loaded_arg_count; i < arg_count; i++) {
         switch (argtypes[i]) {
@@ -502,6 +494,14 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
       }
       if (parsed_spec->precision_is_index) {
         spec->precision = (int) values[parsed_spec->precision_or_index].uint64_value;
+      }
+
+      // =======================
+      // SINGLE-PASS
+      if (spec->argtype == FMT_ARGTYPE_NONE) {
+        // no value
+        n += fmtlib_format_spec(&buf, spec);
+        continue;
       }
 
       // format

@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
   fmt_test_case("===== hello =====", "{:$=^17s}", " hello ");
   fmt_test_case("............101", "{:$.>*b}", 5, 15);
   fmt_test_case("101............", "{1:$.<*0b}", 15, 5);
+  fmt_test_case("               ", "{:$ >*}", 15);
   fmt_test_case("          ", "{:10}"); // zero-arg fill
 
   // printf
