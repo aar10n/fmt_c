@@ -119,9 +119,36 @@ static size_t format_scientific(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   while (val >= 10.0) { val /= 10.0; exp++; }
   while (val < 1.0) { val *= 10.0; exp--; }
 
-  // Format mantissa
+  // Format mantissa with rounding
   uint64_t whole = (uint64_t) val;
-  uint64_t frac = (uint64_t)((val - whole) * pow10[prec]);
+  double tmp = (val - (double)whole) * pow10[prec];
+  uint64_t frac = (uint64_t) tmp;
+
+  // round the remaining fractional part
+  double delta = tmp - (double)frac;
+  if (delta > 0.5) {
+    frac++;
+    if (frac >= (uint64_t)pow10[prec]) {
+      frac = 0;
+      whole++;
+      // handle mantissa rollover (e.g. 9.99 -> 10.0 means exp increases)
+      if (whole >= 10) {
+        whole = 1;
+        exp++;
+      }
+    }
+  } else if (delta == 0.5 && ((frac == 0) || (frac & 1))) {
+    // round half to even
+    frac++;
+    if (frac >= (uint64_t)pow10[prec]) {
+      frac = 0;
+      whole++;
+      if (whole >= 10) {
+        whole = 1;
+        exp++;
+      }
+    }
+  }
 
   char temp[32];
   size_t len = u64_to_str(whole, temp, &decimal_format);
@@ -229,6 +256,7 @@ static size_t format_general(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
     fmt_spec_t sci_spec = *spec;
     sci_spec.precision = prec - 1;
     sci_spec.flags &= ~(FMT_FLAG_SIGN | FMT_FLAG_SPACE); // Already handled sign
+    sci_spec.value.double_value = val; // use absolute value since sign already written
     formatted_len = format_scientific(&temp_buffer, &sci_spec);
     
     // Remove trailing zeros from mantissa unless # flag is set
@@ -267,6 +295,7 @@ static size_t format_general(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
     // and then trim
     fixed_spec.precision = decimal_places;
     fixed_spec.flags &= ~(FMT_FLAG_SIGN | FMT_FLAG_SPACE); // Already handled sign
+    fixed_spec.value.double_value = val; // use absolute value since sign already written
     formatted_len = format_double(&temp_buffer, &fixed_spec);
     
     
@@ -285,7 +314,8 @@ static size_t format_hex_float(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   union double_raw v = { .value = spec->value.double_value };
   size_t n = 0;
   bool uppercase = (spec->flags & FMT_FLAG_UPPER) != 0;
-  
+  const char *digits = uppercase ? "0123456789ABCDEF" : "0123456789abcdef";
+
   // Handle sign
   if (v.sign) {
     n += fmtlib_buffer_write_char(buffer, '-');
@@ -294,17 +324,113 @@ static size_t format_hex_float(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   } else if (spec->flags & FMT_FLAG_SPACE) {
     n += fmtlib_buffer_write_char(buffer, ' ');
   }
-  
-  // Simplified hex float - just write as 0x1.0p+0 format
-  n += fmtlib_buffer_write(buffer, uppercase ? "0X1" : "0x1", 3);
-  if (spec->precision > 0 || (spec->flags & FMT_FLAG_ALT)) {
+
+  // Handle special values
+  if (v.exp == 0x7FF && v.frac == 0) {
+    const char *inf = uppercase ? "INF" : "inf";
+    n += fmtlib_buffer_write(buffer, inf, 3);
+    return n;
+  } else if (v.exp == 0x7FF && v.frac != 0) {
+    const char *nan_str = uppercase ? "NAN" : "nan";
+    n += fmtlib_buffer_write(buffer, nan_str, 3);
+    return n;
+  }
+
+  // Determine the leading digit and exponent
+  // Normal numbers: 0x1.frac * 2^(exp-1023)
+  // Subnormal numbers: 0x0.frac * 2^(-1022)
+  // Zero: 0x0p+0
+  int exponent;
+  char lead_digit;
+  uint64_t frac_bits = v.frac; // 52-bit mantissa
+
+  if (v.exp == 0 && v.frac == 0) {
+    // Zero
+    lead_digit = '0';
+    exponent = 0;
+  } else if (v.exp == 0) {
+    // Subnormal: implicit leading bit is 0
+    lead_digit = '0';
+    exponent = -1022;
+  } else {
+    // Normal: implicit leading bit is 1
+    lead_digit = '1';
+    exponent = (int)v.exp - 1023;
+  }
+
+  n += fmtlib_buffer_write(buffer, uppercase ? "0X" : "0x", 2);
+  n += fmtlib_buffer_write_char(buffer, lead_digit);
+
+  // The 52-bit fraction maps to exactly 13 hex digits (52/4 = 13).
+  // Format: write hex digits of the fraction from most significant to least.
+  // frac_bits is the lower 52 bits; the top hex digit uses bits 51..48, etc.
+
+  // Determine how many hex digits to output
+  int max_hex_digits = 13; // 52 bits / 4 = 13 hex digits
+  int prec;
+  bool has_precision = spec->precision >= 0;
+
+  if (has_precision) {
+    prec = spec->precision;
+    // Round the fraction to the requested precision
+    if (prec < max_hex_digits) {
+      int shift = (max_hex_digits - prec) * 4; // bits to discard
+      uint64_t half = 1ULL << (shift - 1);     // halfway point
+      uint64_t mask = ~((1ULL << shift) - 1);   // mask for kept bits
+      uint64_t remainder = frac_bits & ~mask;
+      if (remainder > half || (remainder == half && ((frac_bits >> shift) & 1))) {
+        frac_bits = (frac_bits & mask) + (1ULL << shift);
+        // Handle carry out of 52 bits
+        if (frac_bits >= (1ULL << 52)) {
+          frac_bits = 0;
+          // Carry into the leading digit; for normal numbers this means
+          // the mantissa overflowed from 1.fff... to 2.0, so bump exponent
+          if (lead_digit == '1') {
+            exponent++;
+          } else {
+            lead_digit = '1';
+          }
+        }
+      } else {
+        frac_bits &= mask;
+      }
+    }
+  } else {
+    // Default: use minimum digits needed (strip trailing zeros)
+    prec = max_hex_digits;
+    // Find last non-zero nibble
+    uint64_t tmp = frac_bits;
+    while (prec > 0 && (tmp & 0xF) == 0) {
+      prec--;
+      tmp >>= 4;
+    }
+  }
+
+  if (prec > 0 || (spec->flags & FMT_FLAG_ALT)) {
     n += fmtlib_buffer_write_char(buffer, '.');
-    for (int i = 0; i < spec->precision; i++) {
+
+    // Write hex digits from most significant nibble to least
+    for (int i = 0; i < prec && i < max_hex_digits; i++) {
+      // bits 51..48 = digit 0, bits 47..44 = digit 1, etc.
+      int shift = 48 - (i * 4);
+      int nibble = (int)((frac_bits >> shift) & 0xF);
+      n += fmtlib_buffer_write_char(buffer, digits[nibble]);
+    }
+    // If precision exceeds actual digits, pad with zeros
+    for (int i = max_hex_digits; i < prec; i++) {
       n += fmtlib_buffer_write_char(buffer, '0');
     }
   }
-  n += fmtlib_buffer_write(buffer, uppercase ? "P+0" : "p+0", 3);
-  
+
+  // Write exponent: p+/-ddd
+  n += fmtlib_buffer_write_char(buffer, uppercase ? 'P' : 'p');
+  n += fmtlib_buffer_write_char(buffer, exponent >= 0 ? '+' : '-');
+  if (exponent < 0) exponent = -exponent;
+
+  char temp[16];
+  size_t len = u64_to_str((uint64_t)exponent, temp, &decimal_format);
+  n += fmtlib_buffer_write(buffer, temp, len);
+
   return n;
 }
 
@@ -317,7 +443,7 @@ static inline size_t format_integer(fmt_buffer_t *buffer, const fmt_spec_t *spec
   if (is_signed) {
     int64_t i = (int64_t) spec->value.uint64_value;
     if (i < 0) {
-      v = -i;
+      v = -(uint64_t)i; // negate in unsigned to avoid UB on INT64_MIN
       is_negative = true;
     } else {
       v = i;
@@ -555,7 +681,11 @@ static size_t format_string(fmt_buffer_t *buffer, const fmt_spec_t *spec) {
   }
   size_t len;
   if (spec->precision >= 0) {
-    len = spec->precision;
+    // find the length up to precision, don't read past the string
+    len = 0;
+    while (len < (size_t)spec->precision && str[len] != '\0') {
+      len++;
+    }
   } else {
     len = strlen(str);
   }

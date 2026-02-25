@@ -525,6 +525,8 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
 
       parsed_fmt_spec_t *parsed_spec = &parsed_specs[cur_spec_index];
       fmt_spec_t *spec = &specs[cur_spec_index];
+      int saved_arg_index = arg_index;
+      int saved_arg_count = arg_count;
       size_t m;
       if (format_char == '{') {
         m = parse_fmt_spec(ptr, max_args, &arg_index, &arg_count, parsed_spec);
@@ -545,9 +547,10 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
         pass_two_index = cur_spec_index;
       }
 
-      memcpy(spec->type, parsed_spec->type, min(parsed_spec->type_len, FMTLIB_MAX_TYPE_LEN));
-      spec->type[parsed_spec->type_len] = 0;
-      spec->type_len = parsed_spec->type_len;
+      size_t clamped_type_len = min(parsed_spec->type_len, FMTLIB_MAX_TYPE_LEN);
+      memcpy(spec->type, parsed_spec->type, clamped_type_len);
+      spec->type[clamped_type_len] = 0;
+      spec->type_len = clamped_type_len;
       spec->value = fmt_rawvalue_uint64(0);
       spec->flags = parsed_spec->flags;
       spec->align = parsed_spec->align;
@@ -563,7 +566,11 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
           n += fmtlib_buffer_write_char(&buf, '}');
         }
 
-        argtypes[parsed_spec->index] = FMT_ARGTYPE_NONE;
+        // mark invalid and roll back arg index/count - we can't safely
+        // va_arg an unknown type without corrupting the va_list
+        parsed_spec->valid = false;
+        arg_index = saved_arg_index;
+        arg_count = saved_arg_count;
         continue;
       }
       argtypes[parsed_spec->index] = spec->argtype;
@@ -681,8 +688,10 @@ size_t fmt_format(const char *format, char *buffer, size_t size, int max_args, v
     }
   }
 
-  if (single_pass)
+  if (single_pass) {
+    va_end(args_copy);
     return n;
+  }
 
   // =======================
   // DOUBLE-PASS
