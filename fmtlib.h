@@ -25,6 +25,7 @@
 #define FMT_FLAG_SIGN   0x04 // always print sign for numeric values
 #define FMT_FLAG_SPACE  0x08 // leave a space in front of positive numeric values
 #define FMT_FLAG_ZERO   0x10 // pad to width with leading zeros and keeps sign in front
+#define FMT_FLAG_PRINTF 0x20 // printf-style formatting (affects prefix styles)
 
 typedef enum fmt_align {
   FMT_ALIGN_LEFT,
